@@ -1,5 +1,2 @@
 when flag clicked
 when "space" key pressed
-when backdrop switches to "something with spaces"
-when this sprite clicked
-when "loudness" > 10
