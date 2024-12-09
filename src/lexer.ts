@@ -11,8 +11,8 @@ type TokenType =
 export interface Token {
   type: TokenType;
   value: string;
-  line: number;
-  column: number;
+  line?: number;
+  column?: number;
 }
 
 const keywords = [
@@ -155,7 +155,7 @@ export function lex(input: string): TokenStream {
   );
 }
 
-interface TokenStream {
+export interface TokenStream {
   peek: () => Token | undefined;
   consume: () => Token;
   position: () => number;
@@ -187,6 +187,10 @@ class TokenStreamImpl implements TokenStream {
       throw new Error("Invalid seek position");
     }
     this.position_ = position;
+  }
+
+  getTokens(): Token[] {
+    return this.tokens;
   }
 }
 

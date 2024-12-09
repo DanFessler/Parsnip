@@ -1,2 +1,3 @@
-when flag clicked
-when "space" key pressed
+when space key pressed
+if flag clicked then
+  say "Hello"

@@ -1,25 +1,5 @@
-import grammar from "./grammar";
-
-// --- Types ---
-type Token = {
-  type: string;
-  value: string;
-  line?: number;
-  column?: number;
-};
-
-interface TokenStream {
-  peek: () => Token | undefined;
-  consume: () => Token;
-  position: () => number;
-  seek: (position: number) => void;
-}
-
-type Rule = {
-  sequence?: Rule[];
-  options?: Rule[];
-  type?: string;
-};
+import grammar, { Rule } from "./grammar";
+import { Token, TokenStream } from "./lexer";
 
 type ASTNode = {
   type: string;

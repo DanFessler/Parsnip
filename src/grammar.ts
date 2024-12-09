@@ -6,11 +6,21 @@ const IDENTIFIER = "IDENTIFIER";
 const SCRIPT = "SCRIPT";
 const KEY = "KEY";
 
-const grammar = {
+// prettier-ignore
+export type Rule = string | {
+  sequence?: Rule[];
+  options?: Rule[];
+  type?: string;
+  repeat?: boolean;
+  separator?: string;
+};
+
+const grammar: Record<string, Rule> = {
   // Basic building blocks
   LITERAL: {
     options: [{ type: STRING }, { type: NUMBER }],
   },
+
   OPERATOR: {
     options: ["+", "-", "*", "/", "%"],
   },
@@ -53,9 +63,11 @@ const grammar = {
       "key pressed",
     ],
   },
+
   if: {
     sequence: ["if", { type: EXPRESSION }, "then", { type: SCRIPT }],
   },
+
   ifElse: {
     sequence: [
       "if",
@@ -66,6 +78,7 @@ const grammar = {
       { type: SCRIPT },
     ],
   },
+
   repeat: {
     sequence: ["repeat", { type: EXPRESSION }, { type: SCRIPT }],
   },
