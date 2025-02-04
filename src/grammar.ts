@@ -126,7 +126,12 @@ const grammar: Record<string, Rule> = {
   },
 
   BLOCK: {
-    sequence: ["{", { type: SCRIPT }, "}"],
+    options: [
+      { type: "STATEMENT" },
+      {
+        sequence: ["{", { type: SCRIPT }, "}"],
+      },
+    ],
   },
 
   // Statements: These are top-level grammar constructs
