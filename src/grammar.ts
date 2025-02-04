@@ -1,3 +1,20 @@
+/**
+ * Grammar definition for a simple programming language parser.
+ *
+ * The grammar is defined as a collection of rules, where each rule can be:
+ * - A sequence of elements that must appear in order
+ * - A set of alternative options
+ * - A repeatable element (with optional separator)
+ *
+ * Rule properties:
+ * - type: References another rule by name
+ * - sequence: Array of elements that must appear in order
+ * - options: Array of alternative elements (only one must match)
+ * - repeat: Boolean indicating if the rule can appear multiple times
+ * - optional: Boolean indicating if the rule is optional
+ * - separator: String used between repeated elements (e.g., comma in function args)
+ */
+
 const BLOCK = "BLOCK";
 const STRING = "STRING";
 const NUMBER = "NUMBER";
@@ -113,14 +130,19 @@ const grammar: Record<string, Rule> = {
   },
 
   // Statements: These are top-level grammar constructs
-
   // NOTE: options should be ordered from most specific to least specific
   // otherwise the parser will get confused and think it's a different rule.
   // e.g. if and ifElse are similar but ifElse is more specific because it
   // has an else clause. this is less than ideal and should be fixed in the
   // future. the grammar shouldn't care about the order of rules.
+
+  // prettier-ignore
   STATEMENT: {
-    options: [{ type: "say" }, { type: "ifElse" }, { type: "if" }],
+    options: [
+      { type: "say" },
+      { type: "ifElse" },
+      { type: "if" },
+    ],
   },
 };
 
