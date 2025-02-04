@@ -1,6 +1,12 @@
+// this is a comment
+// this is another comment
+// and another comment
+
 if "true" then {
+  // this is a block
   say "something"
 } else {
+  // this is another block
   if "true" then {
     say "something else"
   }

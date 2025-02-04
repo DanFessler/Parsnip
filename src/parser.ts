@@ -46,7 +46,10 @@ type SubParser = (
 // parse algebraic expressions (with operator precedence)
 
 function parse(tokens: TokenStream, debug = false): ASTResult {
-  const parseKeyword = (rule: string, currentToken: Token): ASTResult => {
+  const parseKeyword = (
+    rule: string,
+    currentToken: Token | undefined
+  ): ASTResult => {
     if (currentToken?.value !== rule) {
       throw new ParseError(
         `Expected '${rule}' but got '${currentToken?.value}'`,
@@ -262,21 +265,11 @@ function parse(tokens: TokenStream, debug = false): ASTResult {
       }
     }
 
-    if (
-      furthestError &&
-      furthestError.token &&
-      furthestError?.token?.index >= position
-    ) {
-      throw furthestError;
-    }
-
     // If we get here, no options worked
     const currentToken = tokens.peek();
     throw new ParseError(
-      `None of the options matched at ${currentToken?.line}:${currentToken?.column}. ` +
-        `Got "${currentToken?.value}" but expected one of: ${rule.options
-          .map((opt) => (typeof opt === "string" ? opt : opt.type))
-          .join(", ")}`
+      `Unrecognized token: ${currentToken?.value}`,
+      currentToken
     );
   };
 
@@ -286,6 +279,11 @@ function parse(tokens: TokenStream, debug = false): ASTResult {
 
     // if we've reached the end of the token stream and there's no rule to parse, throw an error
     if (!currentToken) throw new ParseError("Unexpected end of input");
+
+    // ignore comments
+    while (tokens.peek()?.type === "comment") {
+      tokens.consume();
+    }
 
     // parse primatives
     if (typeof rule === "string") return parseKeyword(rule, currentToken);
