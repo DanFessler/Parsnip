@@ -40,7 +40,7 @@ type SubParser = (
 */
 
 // TODO:
-// make rules order invariant
+// make rules order commutative
 // properly report unterminated strings
 // report reserved keywords as errors
 // parse algebraic expressions (with operator precedence)
