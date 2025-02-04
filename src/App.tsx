@@ -4,8 +4,10 @@ import test from "./example/test.txt?raw";
 import { parse } from "./parser";
 
 const stream = lex(test);
-console.log(stream.getTokens());
-// const parsed = parse(stream, { debug: true });
+console.log(stream);
+const parsed = parse(stream);
+console.log(JSON.stringify(parsed, null, 2));
+console.log(parsed);
 
 // console.log(parsed);
 

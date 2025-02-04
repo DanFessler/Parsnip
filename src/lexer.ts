@@ -10,9 +10,10 @@ type TokenType =
 
 export interface Token {
   type: TokenType;
-  value: string;
-  line?: number;
-  column?: number;
+  value: string | number;
+  line: number;
+  column: number;
+  index: number;
 }
 
 const keywords = [
@@ -24,6 +25,7 @@ const keywords = [
   "backdrop",
   "switches",
   "to",
+  "say",
 ];
 const operators = ["+", "-", "*", "/", ">", "<", "="];
 const brackets = ["(", ")", "[", "]", "{", "}"];
@@ -51,7 +53,13 @@ export function lex(input: string): TokenStream {
         value += input[current];
         current++;
       }
-      tokens.push({ type: "whitespace", value, line, column: startColumn });
+      tokens.push({
+        type: "whitespace",
+        value,
+        line,
+        column: startColumn,
+        index: current,
+      });
       continue;
     }
 
@@ -64,7 +72,13 @@ export function lex(input: string): TokenStream {
         current++;
         column++;
       }
-      tokens.push({ type: "comment", value, line, column: startColumn });
+      tokens.push({
+        type: "comment",
+        value,
+        line,
+        column: startColumn,
+        index: current,
+      });
       continue;
     }
 
@@ -88,7 +102,13 @@ export function lex(input: string): TokenStream {
         current++;
         column++;
       }
-      tokens.push({ type: "number", value, line, column: startColumn });
+      tokens.push({
+        type: "number",
+        value,
+        line,
+        column: startColumn,
+        index: current,
+      });
       continue;
     }
 
@@ -111,13 +131,25 @@ export function lex(input: string): TokenStream {
       value += input[current];
       current++;
       column++;
-      tokens.push({ type: "string", value, line, column: startColumn });
+      tokens.push({
+        type: "string",
+        value,
+        line,
+        column: startColumn,
+        index: current,
+      });
       continue;
     }
 
     // Handle operators
     if (operators.includes(char)) {
-      tokens.push({ type: "operator", value: char, line, column });
+      tokens.push({
+        type: "operator",
+        value: char,
+        line,
+        column,
+        index: current,
+      });
       current++;
       column++;
       continue;
@@ -125,7 +157,13 @@ export function lex(input: string): TokenStream {
 
     // Handle brackets
     if (brackets.includes(char)) {
-      tokens.push({ type: "bracket", value: char, line, column });
+      tokens.push({
+        type: "bracket",
+        value: char,
+        line,
+        column,
+        index: current,
+      });
       current++;
       column++;
       continue;
@@ -141,7 +179,13 @@ export function lex(input: string): TokenStream {
         column++;
       }
       const type = keywords.includes(value) ? "keyword" : "identifier";
-      tokens.push({ type, value, line, column: startColumn });
+      tokens.push({
+        type,
+        value,
+        line,
+        column: startColumn,
+        index: current,
+      });
       continue;
     }
 
@@ -151,7 +195,8 @@ export function lex(input: string): TokenStream {
   }
 
   return createTokenStream(
-    tokens.filter((token) => token.type !== "whitespace")
+    tokens.filter((token) => token.type !== "whitespace"),
+    input
   );
 }
 
@@ -160,12 +205,13 @@ export interface TokenStream {
   consume: () => Token;
   position: () => number;
   seek: (position: number) => void;
+  getLinesOfCode: (start: number, end?: number) => string;
 }
 
 class TokenStreamImpl implements TokenStream {
   private position_: number = 0;
 
-  constructor(private tokens: Token[]) {}
+  constructor(private tokens: Token[], private text: string) {}
 
   peek(): Token | undefined {
     return this.tokens[this.position_];
@@ -192,8 +238,29 @@ class TokenStreamImpl implements TokenStream {
   getTokens(): Token[] {
     return this.tokens;
   }
+
+  getLinesOfCode(start: number, end?: number): string {
+    if (start < 1) start = 1;
+    if (!end) end = start;
+    return this.text
+      .split("\n")
+      .map((line, i) => {
+        // take the end line number and count its digits
+        const endDigits = end ? end.toString().length : 0;
+
+        // prefix line number with spaces to match the end line number
+        let repeatCount = endDigits - (i + 1).toString().length;
+        if (repeatCount < 0) repeatCount = 0; // TODO: I need to think through why this is needed
+        const prefix = " ".repeat(repeatCount);
+
+        // format the line
+        return `${prefix}${i + 1} | ${line}`;
+      })
+      .slice(start - 1, end)
+      .join("\n");
+  }
 }
 
-export function createTokenStream(tokens: Token[]): TokenStream {
-  return new TokenStreamImpl(tokens);
+export function createTokenStream(tokens: Token[], text: string): TokenStream {
+  return new TokenStreamImpl(tokens, text);
 }

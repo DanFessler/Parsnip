@@ -1,3 +1,4 @@
+const BLOCK = "BLOCK";
 const STRING = "STRING";
 const NUMBER = "NUMBER";
 const OPERATOR = "OPERATOR";
@@ -7,13 +8,16 @@ const SCRIPT = "SCRIPT";
 const KEY = "KEY";
 
 // prettier-ignore
-export type Rule = string | {
-  sequence?: Rule[];
-  options?: Rule[];
+export type Rule = {
   type?: string;
+  sequence?: RuleOrString[];
+  options?: RuleOrString[];
   repeat?: boolean;
+  optional?: boolean;
   separator?: string;
 };
+
+type RuleOrString = Rule | string;
 
 const grammar: Record<string, Rule> = {
   // Basic building blocks
@@ -30,9 +34,9 @@ const grammar: Record<string, Rule> = {
     options: [
       { type: "LITERAL" }, // A literal value
       { type: IDENTIFIER }, // A variable or identifier
-      { type: "ARITHMETIC" }, // Arithmetic expression
       { type: "FUNCTION_CALL" }, // Function call
       { type: "GROUPED_EXPRESSION" }, // Grouped expression (parentheses)
+      { type: "OPERATION" }, // Arithmetic expression
     ],
   },
 
@@ -42,7 +46,7 @@ const grammar: Record<string, Rule> = {
   },
 
   // Arithmetic expression: e.g., (a + b)
-  ARITHMETIC: {
+  OPERATION: {
     sequence: [{ type: EXPRESSION }, { type: OPERATOR }, { type: EXPRESSION }],
   },
 
@@ -65,22 +69,27 @@ const grammar: Record<string, Rule> = {
   },
 
   if: {
-    sequence: ["if", { type: EXPRESSION }, "then", { type: SCRIPT }],
+    sequence: ["if", { type: EXPRESSION }, "then", { type: BLOCK }],
   },
 
+  // prettier-ignore
   ifElse: {
     sequence: [
-      "if",
-      { type: EXPRESSION },
-      "then",
-      { type: SCRIPT },
+      "if", { type: EXPRESSION }, "then",
+      { type: BLOCK },
       "else",
-      { type: SCRIPT },
+      {
+        options: [{ type: "ifElse" }, { type: "if" }, { type: "BLOCK" }],
+      },
     ],
   },
 
   repeat: {
     sequence: ["repeat", { type: EXPRESSION }, { type: SCRIPT }],
+  },
+
+  say: {
+    sequence: ["say", { type: EXPRESSION }],
   },
 
   // Function call: e.g., foo(a, b)
@@ -99,14 +108,19 @@ const grammar: Record<string, Rule> = {
     repeat: true,
   },
 
+  BLOCK: {
+    sequence: ["{", { type: SCRIPT }, "}"],
+  },
+
   // Statements: These are top-level grammar constructs
+
+  // NOTE: options should be ordered from most specific to least specific
+  // otherwise the parser will get confused and think it's a different rule.
+  // e.g. if and ifElse are similar but ifElse is more specific because it
+  // has an else clause. this is less than ideal and should be fixed in the
+  // future. the grammar shouldn't care about the order of rules.
   STATEMENT: {
-    options: [
-      { type: "if" },
-      { type: "ifElse" },
-      { type: "repeat" },
-      { type: "whenKeyPressed" },
-    ],
+    options: [{ type: "say" }, { type: "ifElse" }, { type: "if" }],
   },
 };
 

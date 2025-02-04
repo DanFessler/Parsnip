@@ -1,3 +1,7 @@
-when space key pressed
-if flag clicked then
-  say "Hello"
+if "true" then {
+  say "something"
+} else {
+  if "true" then {
+    say "something else"
+  }
+}
