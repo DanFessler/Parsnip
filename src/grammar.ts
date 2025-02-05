@@ -25,24 +25,46 @@ const IDENTIFIER = "IDENTIFIER";
 const SCRIPT = "SCRIPT";
 // const KEY = "KEY";
 
+type RuleType =
+  | "SCRIPT"
+  | "STATEMENT"
+  | "BLOCK"
+  | "EXPRESSION"
+  | "ADD"
+  | "MUL"
+  | "VALUE"
+  | "LITERAL"
+  | "STRING"
+  | "NUMBER"
+  | "IDENTIFIER"
+  | "GROUP"
+  | "FUNCTION"
+  | "CALL"
+  | "SAY"
+  | "IF"
+  | "IF_ELSE"
+  | "REPEAT"
+  | "WHEN_KEY_PRESSED";
+
 // prettier-ignore
 export type Rule = {
-  type?: string;
+  type?: RuleType;
   sequence?: RuleOrString[];
   options?: RuleOrString[];
   repeat?: boolean;
   optional?: boolean;
   separator?: string;
+
   literal?: boolean;
   parse?: (token: Token) => unknown;
 };
 
 type RuleOrString = Rule | string;
 
-export type Grammar = Record<string, Rule>;
+export type Grammar = Record<RuleType, Rule>;
 
+// prettier-ignore
 const grammar: Grammar = {
-  // Basic building blocks
 
   LITERAL: {
     options: [{ type: STRING }, { type: NUMBER }],
@@ -70,109 +92,103 @@ const grammar: Grammar = {
     },
   },
 
-  OPERATOR: {
-    options: ["+", "-", "*", "/", "%"],
-  },
-
-  // Expressions with precedence levels
   EXPRESSION: {
-    type: "ADDITIVE_EXPR",
+    type: "ADD",
   },
 
-  // Addition and subtraction (lowest precedence)
-  ADDITIVE_EXPR: {
+  ADD: {
     options: [
       {
         sequence: [
-          { type: "MULTIPLICATIVE_EXPR" },
-          { type: "ADDITIVE_OP" },
-          { type: "ADDITIVE_EXPR" },
+          { type: "MUL" },
+          { options: ["+", "-"] },
+          { type: "ADD" },
         ],
       },
-      { type: "MULTIPLICATIVE_EXPR" },
+      { type: "MUL" },
     ],
   },
 
-  // Multiplication and division (higher precedence)
-  MULTIPLICATIVE_EXPR: {
+  MUL: {
     options: [
       {
         sequence: [
-          { type: "PRIMARY_EXPR" },
-          { type: "MULTIPLICATIVE_OP" },
-          { type: "MULTIPLICATIVE_EXPR" },
+          { type: "VALUE" },
+          { options: ["*", "/", "%"] },
+          { type: "MUL" },
         ],
       },
-      { type: "PRIMARY_EXPR" },
+      { type: "VALUE" },
     ],
   },
 
-  // Primary expressions (highest precedence)
-  PRIMARY_EXPR: {
+  VALUE: {
     options: [
       { type: "LITERAL" },
       { type: IDENTIFIER },
-      { type: "FUNCTION_CALL" },
-      { type: "GROUPED_EXPRESSION" },
+      { type: "CALL" },
+      { type: "GROUP" },
     ],
   },
 
-  // Split operators by precedence
-  ADDITIVE_OP: {
-    options: ["+", "-"],
-  },
-
-  MULTIPLICATIVE_OP: {
-    options: ["*", "/", "%"],
-  },
-
-  // Grouped expression: e.g., (a + b)
-  GROUPED_EXPRESSION: {
-    sequence: ["(", { type: EXPRESSION }, ")"],
+  GROUP: {
+    sequence: [
+      "(", 
+      { type: EXPRESSION }, 
+      ")"
+    ],
   },
 
   // Statements
-  whenKeyPressed: {
+  WHEN_KEY_PRESSED: {
     sequence: [
       "when",
-      {
-        options: [
-          { type: STRING },
-          "space",
-          "uparrow",
-          "downarrow",
-          "leftarrow",
-          { sequence: ["right", "arrow"] },
-        ],
-      },
+      { type: STRING },
       "key",
       "pressed",
       { type: BLOCK },
     ],
   },
 
-  if: {
-    sequence: ["if", { type: EXPRESSION }, "then", { type: BLOCK }],
+  IF: {
+    sequence: [
+      "if", 
+      { type: EXPRESSION }, 
+      "then", 
+      { type: BLOCK }
+    ],
   },
 
-  // prettier-ignore
-  ifElse: {
+  IF_ELSE: {
     sequence: [
-      "if", { type: EXPRESSION }, "then",
+      "if", 
+      { type: EXPRESSION }, 
+      "then",
       { type: BLOCK },
       "else",
       {
-        options: [{ type: "ifElse" }, { type: "if" }, { type: "BLOCK" }],
+        options: [
+          { type: "IF_ELSE" },
+          { type: "IF" },
+          { type: "BLOCK" },
+        ],
       },
     ],
   },
 
-  repeat: {
-    sequence: ["repeat", { type: EXPRESSION }, { type: SCRIPT }],
+  REPEAT: {
+    sequence: [
+      "repeat", 
+      { type: EXPRESSION }, 
+      { type: SCRIPT }
+    ],
   },
 
-  say: {
-    sequence: ["say", { type: EXPRESSION }],
+  SAY: {
+    sequence: [
+      "say", 
+      { type: EXPRESSION }
+    ],
   },
 
   FUNCTION: {
@@ -186,8 +202,6 @@ const grammar: Grammar = {
     ],
   },
 
-  // Function call: e.g., foo(a, b)
-
   CALL: {
     sequence: [
       { type: IDENTIFIER },
@@ -197,7 +211,6 @@ const grammar: Grammar = {
     ],
   },
 
-  // Scripts (block of statements)
   SCRIPT: {
     type: "STATEMENT",
     repeat: true,
@@ -206,9 +219,11 @@ const grammar: Grammar = {
   BLOCK: {
     options: [
       { type: "STATEMENT" },
-      {
-        sequence: ["{", { type: SCRIPT }, "}"],
-      },
+      { sequence: [
+        "{", 
+        { type: SCRIPT }, 
+        "}"
+      ] },
     ],
   },
 
@@ -218,17 +233,15 @@ const grammar: Grammar = {
   // e.g. if and ifElse are similar but ifElse is more specific because it
   // has an else clause. this is less than ideal and should be fixed in the
   // future. the grammar shouldn't care about the order of rules.
-
-  // prettier-ignore
   STATEMENT: {
     options: [
-      { type: "say" },
-      { type: "ifElse" },
-      { type: "if" },
+      { type: "SAY" },
+      { type: "IF_ELSE" },
+      { type: "IF" },
       { type: "CALL" },
       { type: "FUNCTION" },
-      { type: "repeat" },
-      { type: "whenKeyPressed" },
+      { type: "REPEAT" },
+      { type: "WHEN_KEY_PRESSED" },
     ],
   },
 };
