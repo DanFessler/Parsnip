@@ -2,12 +2,13 @@
 // this is another comment
 // and another comment
 
-if "true" then {
-  // this is a block
-  say "something"
-} else {
-  // this is another block
-  if "true" then {
-    say "something else"
+myfunction(123)
+
+function myfunction(a, b) {
+  when "right arrow" key pressed {
+    say "a was pressed"
+  }
+  when "left arrow" key pressed {
+    say "b was pressed"
   }
 }

@@ -40,10 +40,10 @@ type SubParser = (
 */
 
 // TODO:
-// make rules order commutative
 // properly report unterminated strings
 // report reserved keywords as errors
-// parse algebraic expressions (with operator precedence)
+// I should probably have an explicit way to specify if a rule should be "captured" instead of assumed
+// the parser should be a class that gets passed a grammar so we can plug in different grammars to the same parser
 
 function parse(tokens: TokenStream, debug = false): ASTResult {
   const parseKeyword = (
@@ -67,14 +67,12 @@ function parse(tokens: TokenStream, debug = false): ASTResult {
       : undefined;
   };
 
-  const parseStringRule = (): ASTResult => {
-    // strip quotes from the string
+  const parsePrimitiveRule = (rule: Rule): ASTResult => {
+    if (!rule.parse) {
+      throw new ParseError("Expected a subparser function for literal");
+    }
+
     const token = tokens.consume();
-
-    if (token.type !== "string")
-      throw new ParseError("Expected a string literal");
-
-    const value = token.value as string;
 
     const position = debug
       ? {
@@ -83,51 +81,15 @@ function parse(tokens: TokenStream, debug = false): ASTResult {
         }
       : {};
 
-    return {
-      type: "STRING",
-      value: value.substring(1, value.length - 1),
-      ...position,
-    } as ASTNode;
-  };
-
-  const parseNumberRule = (): ASTResult => {
-    const token = tokens.consume();
-
-    if (token.type !== "number")
-      throw new ParseError("Expected a number literal");
-
-    const position = debug
-      ? {
-          line: token.line,
-          column: token.column,
-        }
-      : {};
-
-    return {
-      type: "NUMBER",
-      value: Number(token.value),
-      ...position,
-    } as ASTNode;
-  };
-
-  const parseIdentifierRule = (): ASTResult => {
-    const token = tokens.consume();
-
-    if (token.type !== "identifier")
-      throw new ParseError("Expected an identifier");
-
-    const position = debug
-      ? {
-          line: token.line,
-          column: token.column,
-        }
-      : {};
-
-    return {
-      type: "IDENTIFIER",
-      value: token.value,
-      ...position,
-    } as ASTNode;
+    try {
+      return {
+        type: token.type,
+        value: rule.parse!(token),
+        ...position,
+      } as ASTNode;
+    } catch (e) {
+      throw new ParseError(e as string, token);
+    }
   };
 
   const parseRepeatingRule: SubParser = (rule, currentType, endToken) => {
@@ -265,6 +227,8 @@ function parse(tokens: TokenStream, debug = false): ASTResult {
       }
     }
 
+    throw furthestError;
+
     // If we get here, no options worked
     const currentToken = tokens.peek();
     throw new ParseError(
@@ -287,9 +251,8 @@ function parse(tokens: TokenStream, debug = false): ASTResult {
 
     // parse primatives
     if (typeof rule === "string") return parseKeyword(rule, currentToken);
-    if (rule.type === "STRING") return parseStringRule();
-    if (rule.type === "NUMBER") return parseNumberRule();
-    if (rule.type === "IDENTIFIER") return parseIdentifierRule();
+
+    if (rule.parse) return parsePrimitiveRule(rule);
 
     // parse non-primatives
     if (rule.repeat) return parseRepeatingRule(rule, currentType, endToken);
@@ -303,29 +266,6 @@ function parse(tokens: TokenStream, debug = false): ASTResult {
     // we should never reach this point
     throw new ParseError("No matching rule found");
   };
-
-  // const parseExpression = (precedence: number) => {
-  //   let expression = parseRule(grammar.EXPRESSION, "EXPRESSION");
-
-  //   // lets peek at the next token and if it's an operator, lets continue parsing;
-  //   const nextToken = tokens.peek();
-  //   const operatorPrecedence = {
-  //     "+": 1,
-  //     "-": 1,
-  //     "*": 2,
-  //     "/": 2,
-  //     "%": 2,
-  //   };
-
-  //   while (nextToken && nextToken.type === "operator") {
-  //     let operator = nextToken.value;
-  //     let precedence =
-  //       operatorPrecedence[operator as keyof typeof operatorPrecedence];
-
-  //     // if (precedence > currentPrecedence) {
-  //     // }
-  //   }
-  // };
 
   try {
     return parseRule(grammar.SCRIPT, "SCRIPT") as ASTResult;

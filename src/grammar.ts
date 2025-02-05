@@ -15,14 +15,15 @@
  * - separator: String used between repeated elements (e.g., comma in function args)
  */
 
+import { Token } from "./lexer";
+
 const BLOCK = "BLOCK";
 const STRING = "STRING";
 const NUMBER = "NUMBER";
-const OPERATOR = "OPERATOR";
 const EXPRESSION = "EXPRESSION";
 const IDENTIFIER = "IDENTIFIER";
 const SCRIPT = "SCRIPT";
-const KEY = "KEY";
+// const KEY = "KEY";
 
 // prettier-ignore
 export type Rule = {
@@ -32,6 +33,8 @@ export type Rule = {
   repeat?: boolean;
   optional?: boolean;
   separator?: string;
+  literal?: boolean;
+  parse?: (token: Token) => unknown;
 };
 
 type RuleOrString = Rule | string;
@@ -42,19 +45,82 @@ const grammar: Record<string, Rule> = {
     options: [{ type: STRING }, { type: NUMBER }],
   },
 
+  STRING: {
+    parse: (token: Token) => {
+      if (token.type !== "string") throw "Expected a string literal";
+      const value = token.value as string;
+      return value.substring(1, value.length - 1);
+    },
+  },
+
+  NUMBER: {
+    parse: (token: Token) => {
+      if (token.type !== "number") throw "Expected a number literal";
+      return Number(token.value);
+    },
+  },
+
+  IDENTIFIER: {
+    parse: (token: Token) => {
+      if (token.type !== "identifier") throw "Expected an identifier";
+      return token.value;
+    },
+  },
+
   OPERATOR: {
     options: ["+", "-", "*", "/", "%"],
   },
 
-  // Expressions
+  // Expressions with precedence levels
   EXPRESSION: {
+    type: "ADDITIVE_EXPR",
+  },
+
+  // Addition and subtraction (lowest precedence)
+  ADDITIVE_EXPR: {
     options: [
-      { type: "LITERAL" }, // A literal value
-      { type: IDENTIFIER }, // A variable or identifier
-      { type: "FUNCTION_CALL" }, // Function call
-      { type: "GROUPED_EXPRESSION" }, // Grouped expression (parentheses)
-      { type: "OPERATION" }, // Arithmetic expression
+      {
+        sequence: [
+          { type: "MULTIPLICATIVE_EXPR" },
+          { type: "ADDITIVE_OP" },
+          { type: "ADDITIVE_EXPR" },
+        ],
+      },
+      { type: "MULTIPLICATIVE_EXPR" },
     ],
+  },
+
+  // Multiplication and division (higher precedence)
+  MULTIPLICATIVE_EXPR: {
+    options: [
+      {
+        sequence: [
+          { type: "PRIMARY_EXPR" },
+          { type: "MULTIPLICATIVE_OP" },
+          { type: "MULTIPLICATIVE_EXPR" },
+        ],
+      },
+      { type: "PRIMARY_EXPR" },
+    ],
+  },
+
+  // Primary expressions (highest precedence)
+  PRIMARY_EXPR: {
+    options: [
+      { type: "LITERAL" },
+      { type: IDENTIFIER },
+      { type: "FUNCTION_CALL" },
+      { type: "GROUPED_EXPRESSION" },
+    ],
+  },
+
+  // Split operators by precedence
+  ADDITIVE_OP: {
+    options: ["+", "-"],
+  },
+
+  MULTIPLICATIVE_OP: {
+    options: ["*", "/", "%"],
   },
 
   // Grouped expression: e.g., (a + b)
@@ -62,26 +128,23 @@ const grammar: Record<string, Rule> = {
     sequence: ["(", { type: EXPRESSION }, ")"],
   },
 
-  // Arithmetic expression: e.g., (a + b)
-  OPERATION: {
-    sequence: [{ type: EXPRESSION }, { type: OPERATOR }, { type: EXPRESSION }],
-  },
-
   // Statements
   whenKeyPressed: {
     sequence: [
       "when",
       {
-        type: KEY,
         options: [
+          { type: STRING },
           "space",
-          "up arrow",
-          "down arrow",
-          "left arrow",
-          "right arrow",
+          "uparrow",
+          "downarrow",
+          "leftarrow",
+          { sequence: ["right", "arrow"] },
         ],
       },
-      "key pressed",
+      "key",
+      "pressed",
+      { type: BLOCK },
     ],
   },
 
@@ -109,8 +172,20 @@ const grammar: Record<string, Rule> = {
     sequence: ["say", { type: EXPRESSION }],
   },
 
+  FUNCTION: {
+    sequence: [
+      "function",
+      { type: IDENTIFIER },
+      "(",
+      { type: EXPRESSION, repeat: true, separator: "," },
+      ")",
+      { type: BLOCK },
+    ],
+  },
+
   // Function call: e.g., foo(a, b)
-  FUNCTION_CALL: {
+
+  CALL: {
     sequence: [
       { type: IDENTIFIER },
       "(",
@@ -147,6 +222,10 @@ const grammar: Record<string, Rule> = {
       { type: "say" },
       { type: "ifElse" },
       { type: "if" },
+      { type: "CALL" },
+      { type: "FUNCTION" },
+      { type: "repeat" },
+      { type: "whenKeyPressed" },
     ],
   },
 };
