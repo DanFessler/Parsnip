@@ -4,9 +4,12 @@ import { Parser } from "./parser";
 import grammar from "./grammar";
 
 const parser = new Parser(grammar);
-const parsed = parser.parse(test);
-console.log(JSON.stringify(parsed, null, 2));
-console.log(parser, parsed);
+try {
+  const parsed = parser.parse(test);
+  console.log(JSON.stringify(parsed, null, 2));
+} catch (e) {
+  console.error(e);
+}
 
 // console.log(parsed);
 

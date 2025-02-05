@@ -35,7 +35,6 @@ type ASTResult = ASTNode | ASTNode[] | undefined;
 
 // TODO:
 // properly report unterminated strings
-// report reserved keywords as errors
 // I should probably have an explicit way to specify if a rule should be "captured" instead of assumed
 
 class Parser {
@@ -50,7 +49,8 @@ class Parser {
   }
 
   parse(program: string): ASTResult {
-    const tokens = lex(program);
+    const keywords = this.findKeywords(this.grammar);
+    const tokens = lex(program, keywords);
     this.tokens = tokens;
 
     try {
@@ -70,12 +70,44 @@ class Parser {
       }
 
       e.message = `${e.message}${location}\n\n${lineOfCode}\n`;
+
+      throw e;
     }
+  }
+
+  // function to find all keywords in the grammar
+  // it walks the tree till it finds a string instead of a rule object
+  // and adds it to an array.
+  private findKeywords(grammar: Grammar): string[] {
+    const keywords = new Set<string>();
+
+    // Helper function to recursively walk through rules
+    function walkRule(rule: Rule | string) {
+      if (typeof rule === "string") {
+        return keywords.add(rule);
+      }
+      rule.sequence?.forEach(walkRule);
+      rule.options?.forEach(walkRule);
+    }
+
+    // Walk through all rules in the grammar
+    Object.values(grammar).forEach(walkRule);
+
+    return Array.from(keywords);
   }
 
   private parseKeyword(rule: string): ASTResult {
     const token = this.tokens.consume();
     const value = token.value as string;
+
+    // regex to test if rule is a alphanumeric string
+    // we do this because the parser considers any primitive string a keyword
+    // so we need to make sure the rule is actually a keyword
+    // TODO: this is a hack and should be fixed
+    const isAlphaNumeric = /^[a-zA-Z0-9]+$/.test(rule);
+    if (token.type === "keyword" && !isAlphaNumeric) {
+      throw new ParseError(`Unexpected keyword '${value}'`, token);
+    }
 
     // if the value is not the same as the rule (case insensitive), throw an error
     if (value.toLowerCase() !== rule.toLowerCase()) {
