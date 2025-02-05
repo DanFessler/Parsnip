@@ -1,17 +1,17 @@
 import "./App.css";
-import { lex } from "./lexer";
 import test from "./example/test.txt?raw";
-import { parse } from "./parser";
+import { Parser } from "./parser";
+import grammar from "./grammar";
 
-const stream = lex(test);
-console.log(stream);
-const parsed = parse(stream);
+const parser = new Parser(grammar);
+const parsed = parser.parse(test);
 console.log(JSON.stringify(parsed, null, 2));
-console.log(parsed);
+console.log(parser, parsed);
 
 // console.log(parsed);
 
 // Update App component to display parsed grammar
+
 function App() {
   return <div></div>;
 }

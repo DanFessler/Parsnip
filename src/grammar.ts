@@ -39,8 +39,11 @@ export type Rule = {
 
 type RuleOrString = Rule | string;
 
-const grammar: Record<string, Rule> = {
+export type Grammar = Record<string, Rule>;
+
+const grammar: Grammar = {
   // Basic building blocks
+
   LITERAL: {
     options: [{ type: STRING }, { type: NUMBER }],
   },
