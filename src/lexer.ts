@@ -117,6 +117,15 @@ export function lex(input: string, keywords: string[] = []): TokenStream {
         value += input[current];
         current++;
       }
+
+      if (current >= input.length) {
+        const error = new Error(
+          `Unterminated string literal at line ${line}:${startColumn}`
+        );
+        error.name = "LexerError";
+        throw error;
+      }
+
       value += input[current];
       current++;
       column++;

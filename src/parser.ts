@@ -34,7 +34,6 @@ type ASTResult = ASTNode | ASTNode[] | undefined;
 */
 
 // TODO:
-// properly report unterminated strings
 // I should probably have an explicit way to specify if a rule should be "captured" instead of assumed
 
 class Parser {
@@ -276,6 +275,11 @@ class Parser {
         throw e;
       }
     }
+
+    // TODO: Error reporting for this could be improved
+    // right now it always reports a singular furthest error
+    // but if there were multiple at the same depth, then we should report
+    // a special error that's more general.
 
     // If no options succeeded, throw the furthest error
     throw furthestError;
