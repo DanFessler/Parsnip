@@ -2,13 +2,19 @@
 // this is another comment
 // and another comment
 
-myfunction(123)
+call myfunction(a, b) {
+  say "poop"
+}
 
 function myfunction(a, b) {
   when "right arrow" key pressed {
     say "a was pressed"
   }
-  when "left arrow" key pressed {
-    say "b was pressed"
+  if a then {
+    say "a is greater than b"
+  } else {
+    say "b is greater than a"
   }
 }
+
+say "poop"

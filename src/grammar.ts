@@ -23,6 +23,8 @@ const NUMBER = "NUMBER";
 const EXPRESSION = "EXPRESSION";
 const IDENTIFIER = "IDENTIFIER";
 const SCRIPT = "SCRIPT";
+const ARGUMENTS = "ARGUMENTS";
+const PARAMETERS = "PARAMETERS";
 // const KEY = "KEY";
 
 type RuleType =
@@ -44,10 +46,13 @@ type RuleType =
   | "IF"
   | "IF_ELSE"
   | "REPEAT"
-  | "WHEN_KEY_PRESSED";
+  | "WHEN_KEY_PRESSED"
+  | "ARGUMENTS"
+  | "PARAMETERS";
 
 // prettier-ignore
 export type Rule = {
+  capture?: boolean;
   type?: RuleType;
   sequence?: RuleOrString[];
   options?: RuleOrString[];
@@ -56,7 +61,7 @@ export type Rule = {
   separator?: string;
 
   literal?: boolean;
-  parse?: (token: Token) => unknown;
+  parse?: (token: Token) => string | number;
 };
 
 type RuleOrString = Rule | string;
@@ -71,6 +76,7 @@ const grammar: Grammar = {
   },
 
   STRING: {
+    capture: true,
     parse: (token: Token) => {
       if (token.type !== "string") throw "Expected a string literal";
       const value = token.value as string;
@@ -79,6 +85,7 @@ const grammar: Grammar = {
   },
 
   NUMBER: {
+    capture: true,
     parse: (token: Token) => {
       if (token.type !== "number") throw "Expected a number literal";
       return Number(token.value);
@@ -86,6 +93,7 @@ const grammar: Grammar = {
   },
 
   IDENTIFIER: {
+    capture: true,
     parse: (token: Token) => {
       if (token.type !== "identifier") throw "Expected an identifier";
       return token.value;
@@ -97,6 +105,7 @@ const grammar: Grammar = {
   },
 
   ADD: {
+    // capture: true,
     options: [
       {
         sequence: [
@@ -110,6 +119,7 @@ const grammar: Grammar = {
   },
 
   MUL: {
+    // capture: true,
     options: [
       {
         sequence: [
@@ -141,6 +151,7 @@ const grammar: Grammar = {
 
   // Statements
   WHEN_KEY_PRESSED: {
+    capture: true,
     sequence: [
       "when",
       { type: STRING },
@@ -151,6 +162,7 @@ const grammar: Grammar = {
   },
 
   IF: {
+    capture: true,
     sequence: [
       "if", 
       { type: EXPRESSION }, 
@@ -160,6 +172,7 @@ const grammar: Grammar = {
   },
 
   IF_ELSE: {
+    capture: true,
     sequence: [
       "if", 
       { type: EXPRESSION }, 
@@ -185,6 +198,7 @@ const grammar: Grammar = {
   },
 
   SAY: {
+    capture: true,
     sequence: [
       "say", 
       { type: EXPRESSION }
@@ -192,21 +206,42 @@ const grammar: Grammar = {
   },
 
   FUNCTION: {
+    capture: true,
     sequence: [
       "function",
       { type: IDENTIFIER },
-      "(",
-      { type: EXPRESSION, repeat: true, separator: "," },
-      ")",
+      { type: PARAMETERS },
       { type: BLOCK },
     ],
   },
 
   CALL: {
+    capture: true,
     sequence: [
+      "call",
       { type: IDENTIFIER },
+      { type: ARGUMENTS },
+      { type: BLOCK },
+    ],
+  },
+
+  ARGUMENTS: {
+    // capture: true,
+    sequence: [
       "(",
-      { type: EXPRESSION, repeat: true, separator: "," },
+      { 
+        type: EXPRESSION, 
+        repeat: true, 
+        separator: "," 
+      },
+      ")",
+    ],
+  },
+
+  PARAMETERS: {
+    sequence: [
+      "(",
+      { type: IDENTIFIER, repeat: true, separator: "," },
       ")",
     ],
   },
@@ -217,13 +252,14 @@ const grammar: Grammar = {
   },
 
   BLOCK: {
+    // capture: true,
     options: [
-      { type: "STATEMENT" },
       { sequence: [
         "{", 
         { type: SCRIPT }, 
         "}"
       ] },
+      { type: "STATEMENT" },
     ],
   },
 

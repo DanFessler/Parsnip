@@ -22,7 +22,7 @@ type ASTNode = {
   column: number;
 };
 
-type ASTResult = ASTNode | ASTNode[] | undefined;
+type ASTResult = ASTNode | ASTNode[] | string | number | undefined;
 
 /**
   The general idea behind this parser is it takes a token stream and
@@ -34,7 +34,8 @@ type ASTResult = ASTNode | ASTNode[] | undefined;
 */
 
 // TODO:
-// I should probably have an explicit way to specify if a rule should be "captured" instead of assumed
+// the lexer should analyze the grammar to extract patterns instead of a separate definition
+// BUG: the last statement in a script isn't parsed
 
 class Parser {
   private tokens: TokenStream;
@@ -126,7 +127,7 @@ class Parser {
     };
   }
 
-  private parsePrimitiveRule(rule: Rule): ASTResult {
+  private parsePrimitiveRule(rule: Rule): string | number {
     if (!rule.parse) {
       throw new ParseError("Expected a subparser function for literal");
     }
@@ -136,15 +137,7 @@ class Parser {
     // try the parse function
     // the supplied parser is responsible for throwing an error if the token is not expected
     try {
-      const parsed = rule.parse!(token);
-      const { line, column } = token;
-      const position = this.debug ? { line, column } : {};
-
-      return {
-        type: token.type,
-        value: parsed,
-        ...position,
-      } as ASTNode;
+      return rule.parse!(token);
     } catch (e) {
       throw new ParseError(e as string, token);
     }
@@ -183,7 +176,6 @@ class Parser {
       }
     }
 
-    // return the array of parsed results
     return result;
   }
 
@@ -230,14 +222,10 @@ class Parser {
       if (parsed) result.push(parsed as ASTNode);
     }
 
-    const { line, column } = startToken;
-    const position = this.debug ? { line, column } : {};
-
-    return {
-      type: currentType!,
-      value: result,
-      ...position,
-    } as ASTNode;
+    // if the result is a single element, return the element, otherwise return the array.
+    // we do this because some sequences have tokens that we dont care about in the resulting AST
+    // such as keywords, separators, etc. so if there's only one element, we can just return that.
+    return result.length === 1 ? result[0] : result;
   }
 
   private parseOptionsRule(
@@ -302,6 +290,19 @@ class Parser {
 
     // if the rule is a string, parse it as a keyword
     if (typeof rule === "string") return this.parseKeyword(rule);
+
+    // if the rule is a capture rule, strip the capture rule and reparse
+    if (rule.capture) {
+      const strippedRule = { ...rule, capture: false };
+      const parsed = this.parseRule(strippedRule, currentType, endToken);
+      const {line, column} = this.tokens.peek()!;
+      const position = this.debug ? {line, column} : {};
+      return {
+        type: currentType,
+        value: parsed,
+        ...position,
+      } as ASTNode;
+    }
     
     // otherwise parse with the appropriate subparser based on the rule's properties
     if (rule.parse)    return this.parsePrimitiveRule(rule);
