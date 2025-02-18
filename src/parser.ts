@@ -34,6 +34,7 @@ type ASTResult = ASTNode | ASTNode[] | string | number | undefined;
 */
 
 // TODO:
+// Add unit tests
 // the lexer should analyze the grammar to extract patterns instead of a separate definition
 // BUG: the last statement in a script isn't parsed
 

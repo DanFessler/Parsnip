@@ -33,7 +33,6 @@ type RuleType =
   | "BLOCK"
   | "EXPRESSION"
   | "ADD"
-  | "MUL"
   | "VALUE"
   | "LITERAL"
   | "STRING"
@@ -48,7 +47,15 @@ type RuleType =
   | "REPEAT"
   | "WHEN_KEY_PRESSED"
   | "ARGUMENTS"
-  | "PARAMETERS";
+  | "PARAMETERS"
+  | "ADDITIVE"
+  | "MULTIPLICATIVE"
+  | "ADD"
+  | "SUBTRACT"
+  | "MULTIPLY"
+  | "DIVIDE"
+  | "MODULO"
+  | "VALUE";
 
 // prettier-ignore
 export type Rule = {
@@ -101,34 +108,73 @@ const grammar: Grammar = {
   },
 
   EXPRESSION: {
-    type: "ADD",
+    type: "ADDITIVE",
   },
 
-  ADD: {
-    // capture: true,
+  ADDITIVE: {
     options: [
-      {
-        sequence: [
-          { type: "MUL" },
-          { options: ["+", "-"] },
-          { type: "ADD" },
-        ],
-      },
-      { type: "MUL" },
+      { type: "ADD" },
+      { type: "SUBTRACT" },
+      { type: "MULTIPLICATIVE" },
     ],
   },
 
-  MUL: {
-    // capture: true,
+  ADD: {
+    type: "ADD",
+    capture: true,
+    sequence: [
+      { type: "MULTIPLICATIVE" },
+      "+",
+      { type: "ADDITIVE" },
+    ],
+  },
+
+  SUBTRACT: {
+    type: "SUBTRACT",
+    capture: true,
+    sequence: [
+      { type: "MULTIPLICATIVE" },
+      "-",
+      { type: "ADDITIVE" },
+    ],
+  },
+
+  MULTIPLICATIVE: {  
     options: [
-      {
-        sequence: [
-          { type: "VALUE" },
-          { options: ["*", "/", "%"] },
-          { type: "MUL" },
-        ],
-      },
+      { type: "MULTIPLY" },
+      { type: "DIVIDE" },
+      { type: "MODULO" },
       { type: "VALUE" },
+    ],
+  },
+
+  MULTIPLY: {
+    type: "MULTIPLY",
+    capture: true,
+    sequence: [
+      { type: "VALUE" },
+      "*",
+      { type: "MULTIPLICATIVE" },
+    ],
+  },
+
+  DIVIDE: {
+    type: "DIVIDE",
+    capture: true,
+    sequence: [
+      { type: "VALUE" },
+      "/",
+      { type: "MULTIPLICATIVE" },
+    ],
+  },
+
+  MODULO: {
+    type: "MODULO",
+    capture: true,
+    sequence: [
+      { type: "VALUE" },
+      "%",
+      { type: "MULTIPLICATIVE" },
     ],
   },
 
@@ -226,7 +272,6 @@ const grammar: Grammar = {
   },
 
   ARGUMENTS: {
-    // capture: true,
     sequence: [
       "(",
       { 

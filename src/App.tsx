@@ -1,5 +1,5 @@
 import "./App.css";
-import test from "./example/test.txt?raw";
+import test from "./example/expressions.txt?raw";
 import { Parser } from "./parser";
 import grammar from "./grammar";
 

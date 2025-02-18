@@ -16,7 +16,7 @@ export interface Token {
   index: number;
 }
 
-const operators = ["+", "-", "*", "/", ">", "<", "="];
+const operators = ["+", "-", "*", "/", ">", "<", "=", "%"];
 const brackets = ["(", ")", "[", "]", "{", "}"];
 
 export function lex(input: string, keywords: string[] = []): TokenStream {
