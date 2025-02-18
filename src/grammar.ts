@@ -236,6 +236,7 @@ const grammar: Grammar = {
   },
 
   REPEAT: {
+    capture: true,
     sequence: [
       "repeat", 
       { type: EXPRESSION }, 
@@ -286,7 +287,11 @@ const grammar: Grammar = {
   PARAMETERS: {
     sequence: [
       "(",
-      { type: IDENTIFIER, repeat: true, separator: "," },
+      { 
+        type: IDENTIFIER,
+        repeat: true,
+        separator: ",",
+      },
       ")",
     ],
   },
@@ -297,13 +302,12 @@ const grammar: Grammar = {
   },
 
   BLOCK: {
-    // capture: true,
     options: [
-      { sequence: [
-        "{", 
-        { type: SCRIPT }, 
-        "}"
-      ] },
+      {
+        sequence: [
+          "{", { type: SCRIPT }, "}"
+        ]
+      },
       { type: "STATEMENT" },
     ],
   },
