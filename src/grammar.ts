@@ -72,124 +72,102 @@ const grammar: Grammar = {
 
   LOGICAL: {
     options: [
-      { type: "AND" },
-      { type: "OR" },
+      {
+        type: "AND",
+        capture: true,
+        sequence: [
+          { type: "LOGICAL" }, "and", { type: "LOGICAL" },
+        ],
+      },
+      {
+        type: "OR",
+        capture: true,
+        sequence: [
+          { type: "LOGICAL" }, "or", { type: "LOGICAL" },
+        ],
+      },
       { type: "COMPARISON" },
-    ],
-  },
-
-  AND: {
-    type: "AND",
-    capture: true,
-    sequence: [
-      { type: "LOGICAL" }, "and", { type: "LOGICAL" },
-    ],
-  },
-
-  OR: {
-    type: "OR",
-    capture: true,
-    sequence: [
-      { type: "LOGICAL" }, "or", { type: "LOGICAL" },
     ],
   },
 
   COMPARISON: {
     options: [
-      { type: "EQUALS" },
-      { type: "NOT_EQUALS" },
-      { type: "LESS_THAN" },
-      { type: "GREATER_THAN" },
+      {
+        type: "EQUALS",
+        capture: true,
+        sequence: [
+          { type: "ADDITIVE" }, "==", { type: "COMPARISON" },
+        ],
+      },    
+      {
+        type: "NOT_EQUALS",
+        capture: true,
+        sequence: [
+          { type: "ADDITIVE" }, "!=", { type: "COMPARISON" },
+        ],
+      },    
+      {
+        type: "LESS_THAN",
+        capture: true,
+        sequence: [
+          { type: "ADDITIVE" }, "<", { type: "COMPARISON" },
+        ],
+      },    
+      {
+        type: "GREATER_THAN",
+        capture: true,
+        sequence: [
+          { type: "ADDITIVE" }, ">", { type: "COMPARISON" },
+        ],
+      },
       { type: "ADDITIVE" },
     ],
-  },
-
-  EQUALS: {
-    type: "EQUALS",
-    capture: true,
-    sequence: [
-      { type: "ADDITIVE" }, "==", { type: "COMPARISON" },
-    ],
-  },
-
-  NOT_EQUALS: {
-    type: "NOT_EQUALS",
-    capture: true,
-    sequence: [
-      { type: "ADDITIVE" }, "!=", { type: "COMPARISON" },
-    ],
-  },
-
-  LESS_THAN: {
-    type: "LESS_THAN",
-    capture: true,
-    sequence: [
-      { type: "ADDITIVE" }, "<", { type: "COMPARISON" },
-    ],
-  },
-
-  GREATER_THAN: {
-    type: "GREATER_THAN",
-    capture: true,
-    sequence: [
-      { type: "ADDITIVE" }, ">", { type: "COMPARISON" },
-    ],
-  },
+  },  
 
   ADDITIVE: {
     options: [
-      { type: "ADD" },
-      { type: "SUBTRACT" },
+      {
+        type: "ADD",
+        capture: true,
+        sequence: [
+          { type: "MULTIPLICATIVE" }, "+", { type: "ADDITIVE" },
+        ],
+      },
+      {
+        type: "SUBTRACT",
+        capture: true,
+        sequence: [
+          { type: "MULTIPLICATIVE" }, "-", { type: "ADDITIVE" },
+        ],
+      },
       { type: "MULTIPLICATIVE" },
     ],
   },
 
   MULTIPLICATIVE: {  
     options: [
-      { type: "MULTIPLY" },
-      { type: "DIVIDE" },
-      { type: "MODULO" },
+      {
+        type: "MULTIPLY",
+        capture: true,
+        sequence: [
+          { type: "VALUE" }, "*", { type: "MULTIPLICATIVE" },
+        ],
+      },
+      {
+        type: "DIVIDE",
+        capture: true,
+        sequence: [
+          { type: "VALUE" }, "/", { type: "MULTIPLICATIVE" },
+        ],
+      },
+      {
+        type: "MODULO",
+        capture: true,
+        sequence: [
+          { type: "VALUE" }, "%", { type: "MULTIPLICATIVE" },
+        ],
+      },
       { type: "VALUE" },
-    ],
-  },
-
-  ADD: {
-    type: "ADD",
-    capture: true,
-    sequence: [
-      { type: "MULTIPLICATIVE" }, "+", { type: "ADDITIVE" },
-    ],
-  },
-
-  SUBTRACT: {
-    type: "SUBTRACT",
-    capture: true,
-    sequence: [
-      { type: "MULTIPLICATIVE" }, "-", { type: "ADDITIVE" },
-    ],
-  },
-
-  MULTIPLY: {
-    type: "MULTIPLY",
-    capture: true,
-    sequence: [
-      { type: "VALUE" }, "*", { type: "MULTIPLICATIVE" },
-    ],
-  },
-
-  DIVIDE: {
-    type: "DIVIDE",
-    capture: true,
-    sequence: [
-      { type: "VALUE" }, "/", { type: "MULTIPLICATIVE" },
-    ],
-  },
-
-  MODULO: {
-    type: "MODULO",
-    capture: true,
-    sequence: [
-      { type: "VALUE" }, "%", { type: "MULTIPLICATIVE" },
     ],
   },
 
@@ -210,92 +188,7 @@ const grammar: Grammar = {
     ],
   },
 
-  SAY: {
-    capture: true,
-    sequence: [
-      "say", 
-      { type: "EXPRESSION" }
-    ],
-  },
 
-  IF_ELSE: {
-    capture: true,
-    sequence: [
-      "if", 
-      { type: "EXPRESSION" }, 
-      "then",
-      { type: "BLOCK" },
-      "else",
-      {
-        options: [
-          { type: "IF_ELSE" },
-          { type: "IF" },
-          { type: "BLOCK" },
-        ],
-      },
-    ],
-  },
-
-  IF: {
-    capture: true,
-    sequence: [
-      "if", 
-      { type: "EXPRESSION" }, 
-      "then", 
-      { type: "BLOCK" }
-    ],
-  },
-
-  CALL: {
-    capture: true,
-    sequence: [
-      "call",
-      { type: "IDENTIFIER" },
-      { type: "ARGUMENTS" },
-      { type: "BLOCK" },
-    ],
-  },
-
-  FUNCTION: {
-    capture: true,
-    sequence: [
-      "function",
-      { type: "IDENTIFIER" },
-      { type: "PARAMETERS" },
-      { type: "BLOCK" },
-    ],
-  },
-
-  REPEAT: {
-    capture: true,
-    sequence: [
-      "repeat", 
-      { type: "EXPRESSION" }, 
-      { type: "SCRIPT" }
-    ],
-  },
-
-  // Statements
-  WHEN_KEY_PRESSED: {
-    capture: true,
-    sequence: [
-      "when",
-      { type: "STRING" },
-      "key",
-      "pressed",
-      { type: "BLOCK" },
-    ],
-  },
-
-  SET: {
-    capture: true,
-    sequence: [
-      "set",
-      { type: "IDENTIFIER" },
-      "to",
-      { type: "EXPRESSION" },
-    ],
-  },
 
   ARGUMENTS: {
     sequence: [
@@ -345,14 +238,100 @@ const grammar: Grammar = {
   // future. the grammar shouldn't care about the order of rules.
   STATEMENT: {
     options: [
-      { type: "SAY" },
-      { type: "IF_ELSE" },
-      { type: "IF" },
-      { type: "CALL" },
-      { type: "FUNCTION" },
-      { type: "REPEAT" },
-      { type: "WHEN_KEY_PRESSED" },
-      { type: "SET" },
+      {
+        type: "SAY",
+        capture: true,
+        sequence: [
+          "say", 
+          { type: "EXPRESSION" }
+        ],
+      },
+    
+      {
+        type: "IF_ELSE",
+        capture: true,
+        sequence: [
+          "if", 
+          { type: "EXPRESSION" }, 
+          "then",
+          { type: "BLOCK" },
+          "else",
+          {
+            options: [
+              { type: "IF_ELSE" },
+              { type: "IF" },
+              { type: "BLOCK" },
+            ],
+          },
+        ],
+      },
+    
+      {
+        type: "IF",
+        capture: true,
+        sequence: [
+          "if", 
+          { type: "EXPRESSION" }, 
+          "then", 
+          { type: "BLOCK" }
+        ],
+      },
+    
+      {
+        type: "CALL",
+        capture: true,
+        sequence: [
+          "call",
+          { type: "IDENTIFIER" },
+          { type: "ARGUMENTS" },
+          { type: "BLOCK" },
+        ],
+      },
+    
+      {
+        type: "FUNCTION",
+        capture: true,
+        sequence: [
+          "function",
+          { type: "IDENTIFIER" },
+          { type: "PARAMETERS" },
+          { type: "BLOCK" },
+        ],
+      },
+    
+      {
+        type: "REPEAT",
+        capture: true,
+        sequence: [
+          "repeat", 
+          { type: "EXPRESSION" }, 
+          { type: "SCRIPT" }
+        ],
+      },
+    
+      // Statements
+      {
+        type: "WHEN_KEY_PRESSED",
+        capture: true,
+        sequence: [
+          "when",
+          { type: "STRING" },
+          "key",
+          "pressed",
+          { type: "BLOCK" },
+        ],
+      },
+    
+      {
+        type: "SET",
+        capture: true,
+        sequence: [
+          "set",
+          { type: "IDENTIFIER" },
+          "to",
+          { type: "EXPRESSION" },
+        ],
+      },
     ],
   },
 };
