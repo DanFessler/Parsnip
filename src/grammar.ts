@@ -67,7 +67,73 @@ const grammar: Grammar = {
   },
 
   EXPRESSION: {
-    type: "ADDITIVE",
+    type: "COMPARISON",
+  },
+
+  LOGICAL: {
+    options: [
+      { type: "AND" },
+      { type: "OR" },
+      { type: "COMPARISON" },
+    ],
+  },
+
+  AND: {
+    type: "AND",
+    capture: true,
+    sequence: [
+      { type: "LOGICAL" }, "and", { type: "LOGICAL" },
+    ],
+  },
+
+  OR: {
+    type: "OR",
+    capture: true,
+    sequence: [
+      { type: "LOGICAL" }, "or", { type: "LOGICAL" },
+    ],
+  },
+
+  COMPARISON: {
+    options: [
+      { type: "EQUALS" },
+      { type: "NOT_EQUALS" },
+      { type: "LESS_THAN" },
+      { type: "GREATER_THAN" },
+      { type: "ADDITIVE" },
+    ],
+  },
+
+  EQUALS: {
+    type: "EQUALS",
+    capture: true,
+    sequence: [
+      { type: "ADDITIVE" }, "==", { type: "COMPARISON" },
+    ],
+  },
+
+  NOT_EQUALS: {
+    type: "NOT_EQUALS",
+    capture: true,
+    sequence: [
+      { type: "ADDITIVE" }, "!=", { type: "COMPARISON" },
+    ],
+  },
+
+  LESS_THAN: {
+    type: "LESS_THAN",
+    capture: true,
+    sequence: [
+      { type: "ADDITIVE" }, "<", { type: "COMPARISON" },
+    ],
+  },
+
+  GREATER_THAN: {
+    type: "GREATER_THAN",
+    capture: true,
+    sequence: [
+      { type: "ADDITIVE" }, ">", { type: "COMPARISON" },
+    ],
   },
 
   ADDITIVE: {
@@ -75,26 +141,6 @@ const grammar: Grammar = {
       { type: "ADD" },
       { type: "SUBTRACT" },
       { type: "MULTIPLICATIVE" },
-    ],
-  },
-
-  ADD: {
-    type: "ADD",
-    capture: true,
-    sequence: [
-      { type: "MULTIPLICATIVE" },
-      "+",
-      { type: "ADDITIVE" },
-    ],
-  },
-
-  SUBTRACT: {
-    type: "SUBTRACT",
-    capture: true,
-    sequence: [
-      { type: "MULTIPLICATIVE" },
-      "-",
-      { type: "ADDITIVE" },
     ],
   },
 
@@ -107,13 +153,27 @@ const grammar: Grammar = {
     ],
   },
 
+  ADD: {
+    type: "ADD",
+    capture: true,
+    sequence: [
+      { type: "MULTIPLICATIVE" }, "+", { type: "ADDITIVE" },
+    ],
+  },
+
+  SUBTRACT: {
+    type: "SUBTRACT",
+    capture: true,
+    sequence: [
+      { type: "MULTIPLICATIVE" }, "-", { type: "ADDITIVE" },
+    ],
+  },
+
   MULTIPLY: {
     type: "MULTIPLY",
     capture: true,
     sequence: [
-      { type: "VALUE" },
-      "*",
-      { type: "MULTIPLICATIVE" },
+      { type: "VALUE" }, "*", { type: "MULTIPLICATIVE" },
     ],
   },
 
@@ -121,9 +181,7 @@ const grammar: Grammar = {
     type: "DIVIDE",
     capture: true,
     sequence: [
-      { type: "VALUE" },
-      "/",
-      { type: "MULTIPLICATIVE" },
+      { type: "VALUE" }, "/", { type: "MULTIPLICATIVE" },
     ],
   },
 
@@ -131,9 +189,7 @@ const grammar: Grammar = {
     type: "MODULO",
     capture: true,
     sequence: [
-      { type: "VALUE" },
-      "%",
-      { type: "MULTIPLICATIVE" },
+      { type: "VALUE" }, "%", { type: "MULTIPLICATIVE" },
     ],
   },
 
@@ -154,25 +210,11 @@ const grammar: Grammar = {
     ],
   },
 
-  // Statements
-  WHEN_KEY_PRESSED: {
+  SAY: {
     capture: true,
     sequence: [
-      "when",
-      { type: "STRING" },
-      "key",
-      "pressed",
-      { type: "BLOCK" },
-    ],
-  },
-
-  IF: {
-    capture: true,
-    sequence: [
-      "if", 
-      { type: "EXPRESSION" }, 
-      "then", 
-      { type: "BLOCK" }
+      "say", 
+      { type: "EXPRESSION" }
     ],
   },
 
@@ -194,20 +236,23 @@ const grammar: Grammar = {
     ],
   },
 
-  REPEAT: {
+  IF: {
     capture: true,
     sequence: [
-      "repeat", 
+      "if", 
       { type: "EXPRESSION" }, 
-      { type: "SCRIPT" }
+      "then", 
+      { type: "BLOCK" }
     ],
   },
 
-  SAY: {
+  CALL: {
     capture: true,
     sequence: [
-      "say", 
-      { type: "EXPRESSION" }
+      "call",
+      { type: "IDENTIFIER" },
+      { type: "ARGUMENTS" },
+      { type: "BLOCK" },
     ],
   },
 
@@ -221,13 +266,34 @@ const grammar: Grammar = {
     ],
   },
 
-  CALL: {
+  REPEAT: {
     capture: true,
     sequence: [
-      "call",
-      { type: "IDENTIFIER" },
-      { type: "ARGUMENTS" },
+      "repeat", 
+      { type: "EXPRESSION" }, 
+      { type: "SCRIPT" }
+    ],
+  },
+
+  // Statements
+  WHEN_KEY_PRESSED: {
+    capture: true,
+    sequence: [
+      "when",
+      { type: "STRING" },
+      "key",
+      "pressed",
       { type: "BLOCK" },
+    ],
+  },
+
+  SET: {
+    capture: true,
+    sequence: [
+      "set",
+      { type: "IDENTIFIER" },
+      "to",
+      { type: "EXPRESSION" },
     ],
   },
 
@@ -286,6 +352,7 @@ const grammar: Grammar = {
       { type: "FUNCTION" },
       { type: "REPEAT" },
       { type: "WHEN_KEY_PRESSED" },
+      { type: "SET" },
     ],
   },
 };

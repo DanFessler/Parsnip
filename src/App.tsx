@@ -1,9 +1,9 @@
 import "./App.css";
-import test from "./example/expressions.txt?raw";
+import test from "./example/comparison.txt?raw";
 import { Parser } from "./parser";
 import grammar from "./grammar";
 
-const parser = new Parser(grammar);
+const parser = new Parser(grammar, false);
 try {
   const parsed = parser.parse(test);
   console.log(JSON.stringify(parsed, null, 2));

@@ -2,6 +2,9 @@
 // this is another comment
 // and another comment
 
+set i to 10
+set j to 20
+
 call myfunction(a, b) {
   say "poop"
 }
