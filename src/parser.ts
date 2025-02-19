@@ -36,7 +36,6 @@ type ASTResult = ASTNode | ASTNode[] | string | number | undefined;
 // TODO:
 // Add unit tests
 // the lexer should analyze the grammar to extract patterns instead of a separate definition
-// BUG: the last statement in a script isn't parsed
 
 class Parser {
   private tokens: TokenStream;
@@ -295,9 +294,9 @@ class Parser {
     // if the rule is a capture rule, strip the capture rule and reparse
     if (rule.capture) {
       const strippedRule = { ...rule, capture: false };
-      const parsed = this.parseRule(strippedRule, currentType, endToken);
       const {line, column} = this.tokens.peek()!;
       const position = this.debug ? {line, column} : {};
+      const parsed = this.parseRule(strippedRule, currentType, endToken);
       return {
         type: currentType,
         value: parsed,
