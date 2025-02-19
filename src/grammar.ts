@@ -15,24 +15,7 @@
  * - separator: String used between repeated elements (e.g., comma in function args)
  */
 
-import { Token } from "./lexer";
-
-// prettier-ignore
-export type Rule = {
-  capture?: boolean;
-  type?: string;
-  sequence?: RuleOrString[];
-  options?: RuleOrString[];
-  repeat?: boolean;
-  optional?: boolean;
-  separator?: string;
-  literal?: boolean;
-  parse?: (token: Token) => string | number;
-};
-
-type RuleOrString = Rule | string;
-
-export type Grammar = Record<string, Rule>;
+import { Token, Grammar } from "../lib/types";
 
 // prettier-ignore
 const grammar: Grammar = {
@@ -188,8 +171,6 @@ const grammar: Grammar = {
     ],
   },
 
-
-
   ARGUMENTS: {
     sequence: [
       "(",
@@ -230,12 +211,6 @@ const grammar: Grammar = {
     ],
   },
 
-  // Statements: These are top-level grammar constructs
-  // NOTE: options should be ordered from most specific to least specific
-  // otherwise the parser will get confused and think it's a different rule.
-  // e.g. if and ifElse are similar but ifElse is more specific because it
-  // has an else clause. this is less than ideal and should be fixed in the
-  // future. the grammar shouldn't care about the order of rules.
   STATEMENT: {
     options: [
       {
@@ -309,7 +284,6 @@ const grammar: Grammar = {
         ],
       },
     
-      // Statements
       {
         type: "WHEN_KEY_PRESSED",
         capture: true,

@@ -1,20 +1,4 @@
-type TokenType =
-  | "keyword"
-  | "number"
-  | "operator"
-  | "bracket"
-  | "comment"
-  | "string"
-  | "whitespace"
-  | "identifier";
-
-export interface Token {
-  type: TokenType;
-  value: string | number;
-  line: number;
-  column: number;
-  index: number;
-}
+import { Token, TokenStream } from "./types";
 
 const operators = ["+", "-", "*", "/", ">", "<", "=", "%"];
 const brackets = ["(", ")", "[", "]", "{", "}"];
@@ -196,14 +180,6 @@ export function lex(input: string, keywords: string[] = []): TokenStream {
     tokens.filter((token) => token.type !== "whitespace"),
     input
   );
-}
-
-export interface TokenStream {
-  peek: () => Token | undefined;
-  consume: () => Token;
-  position: () => number;
-  seek: (position: number) => void;
-  getLinesOfCode: (start: number, end?: number) => string;
 }
 
 class TokenStreamImpl implements TokenStream {

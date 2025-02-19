@@ -1,5 +1,18 @@
-import { Grammar, Rule } from "./grammar";
-import { lex, Token, TokenStream } from "./lexer";
+import { Grammar, Rule, Token, TokenStream, ASTNode, ASTResult } from "./types";
+import { lex } from "./lexer";
+
+/**
+  The general idea behind this parser is it takes a token stream and
+  parses it given a rule defined in the grammar. We assume the first
+  rule to be a script, and it'll recursively traverse the grammar rule
+  graph until we reach a primative. Some rules have special parsing
+  logic, like repeat, optional, sequence, and options. These are
+  handled by the sub parsers.
+*/
+
+// TODO:
+// Add unit tests
+// the lexer should analyze the grammar to extract patterns instead of a separate definition
 
 class ParseError extends Error {
   constructor(
@@ -14,28 +27,6 @@ class ParseError extends Error {
     this.exit = exit;
   }
 }
-
-type ASTNode = {
-  type: string;
-  value: ASTNode | ASTNode[] | string | number;
-  line: number;
-  column: number;
-};
-
-type ASTResult = ASTNode | ASTNode[] | string | number | undefined;
-
-/**
-  The general idea behind this parser is it takes a token stream and
-  parses it given a rule defined in the grammar. We assume the first
-  rule to be a script, and it'll recursively traverse the grammar rule
-  graph until we reach a primative. Some rules have special parsing
-  logic, like repeat, optional, sequence, and options. These are
-  handled by the sub parsers.
-*/
-
-// TODO:
-// Add unit tests
-// the lexer should analyze the grammar to extract patterns instead of a separate definition
 
 class Parser {
   private tokens: TokenStream;
@@ -298,7 +289,7 @@ class Parser {
       const position = this.debug ? {line, column} : {};
       const parsed = this.parseRule(strippedRule, currentType, endToken);
       return {
-        type: currentType,
+        type: rule.type,
         value: parsed,
         ...position,
       } as ASTNode;
@@ -312,18 +303,11 @@ class Parser {
     if (rule.options)  return this.parseOptionsRule(rule, currentType, endToken);
 
     // if we made it this far, then we need to recursively parse with the referenced rule
-    if (rule.type) return this.parseRule(this.grammar[rule.type], rule.type, endToken);
+    if (rule.type) return this.parseRule(this.grammar[rule.type as keyof Grammar], rule.type, endToken);
     
     // if we didn't find a matching rule, throw an error
     throw new ParseError("No matching rule found");
   }
 }
 
-export {
-  Parser,
-  ParseError,
-  type Token,
-  type TokenStream,
-  type Rule,
-  type ASTNode,
-};
+export { Parser, ParseError };
