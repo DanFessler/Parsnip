@@ -1,4 +1,4 @@
-LITERAL: <string> | <number>
+LITERAL: string | number
 
 STRING: "([^"\\]|\\.)*"
 
@@ -6,16 +6,16 @@ NUMBER: \d+
 
 IDENTIFIER: [a-zA-Z_][a-zA-Z0-9_]*
 
-EXPRESSION: <ADD>
+EXPRESSION: ADD
 
-ADD: <MUL> ["+" | "-"] <ADD>
+ADD: MUL ["+" | "-"] ADD
 
-MUL: <VALUE> ["*" | "/" | "%"] <MUL>
+MUL: VALUE ["*" | "/" | "%"] MUL
 
-VALUE: <LITERAL> | <IDENTIFIER> | <CALL> | <GROUP>
+VALUE: LITERAL | IDENTIFIER | CALL | GROUP
 
-GROUP: "(" <EXPRESSION> ")"
+GROUP: "(" EXPRESSION ")"
 
-CALL: <IDENTIFIER> "(" <ARGUMENTS> ")"
+CALL: IDENTIFIER "(" ARGUMENTS ")"
 
-ARGUMENTS: <EXPRESSION> ["," <EXPRESSION>]*
+ARGUMENTS: EXPRESSION ["," EXPRESSION]*
