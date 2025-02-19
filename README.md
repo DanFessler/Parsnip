@@ -2,16 +2,12 @@
 
 **Parsnip** is a JavaScript-native parser library designed to parse and construct **Concrete Syntax Trees (CSTs)** dynamically using **runtime-defined grammars**. Unlike traditional parsers, Parsnip allows **custom DSLs** to be defined and parsed with ease, making it perfect for scripting languages, interpreters, and domain-specific language development.
 
----
-
 ## 🚀 Features
 
 ✅ **JavaScript-first** – No native dependencies, works in the browser and Node.js.  
 ✅ **Dynamic Grammars** – Define and modify parsing rules at runtime.  
 ✅ **CST-Based Parsing** – Preserves full syntactic structure, including keywords and expressions.  
 ✅ **Flexible Error Handling** – Provides detailed parsing errors with line/column tracking.
-
----
 
 ## 📦 Installation
 
@@ -28,8 +24,6 @@ Or import it into your project:
 import { Parser } from "./parser";
 import grammar from "./grammar";
 ```
-
----
 
 ## 🔧 Usage Example
 
@@ -105,8 +99,6 @@ console.log(JSON.stringify(cst, null, 2));
 }
 ```
 
----
-
 ### **3️⃣ Error Handling**
 
 If the input contains syntax errors, Parsnip provides **detailed error messages**.
@@ -127,8 +119,6 @@ Expected 'EXPRESSION' but got end of input at line 1:6
 print
      ^
 ```
-
----
 
 ## 📐 Grammar Schema
 
@@ -172,8 +162,6 @@ Each rule in a Parsnip grammar is defined using the following properties:
 }
 ```
 
----
-
 ## 🎯 Why Use Parsnip?
 
 Parsnip is **different from other parsers** like PEG.js, Chevrotain, or Tree-Sitter because:
@@ -182,15 +170,11 @@ Parsnip is **different from other parsers** like PEG.js, Chevrotain, or Tree-Sit
 - **It produces a full CST**, not just an AST.
 - **It is lightweight and easy to use** for scripting and custom DSLs.
 
----
-
 ## 📌 Future Plans
 
 🔹 **Incremental Parsing** – Improve performance for live-editing scenarios.  
 🔹 **Syntax Highlighting Support** – Allow partial parsing for efficient code coloring.  
 🔹 **Customizable AST Transformations** – Provide utility functions for converting CST → AST.
-
----
 
 ## 🤝 Contributing
 
@@ -200,12 +184,8 @@ Contributions are welcome! Feel free to:
 - Suggest features
 - Submit pull requests
 
----
-
 ## 📜 License
 
 MIT License
-
----
 
 🌱 **Parsnip – A Simple Yet Powerful Parser for JavaScript**
