@@ -17,69 +17,28 @@
 
 import { Token } from "./lexer";
 
-const BLOCK = "BLOCK";
-const STRING = "STRING";
-const NUMBER = "NUMBER";
-const EXPRESSION = "EXPRESSION";
-const IDENTIFIER = "IDENTIFIER";
-const SCRIPT = "SCRIPT";
-const ARGUMENTS = "ARGUMENTS";
-const PARAMETERS = "PARAMETERS";
-// const KEY = "KEY";
-
-type RuleType =
-  | "SCRIPT"
-  | "STATEMENT"
-  | "BLOCK"
-  | "EXPRESSION"
-  | "ADD"
-  | "VALUE"
-  | "LITERAL"
-  | "STRING"
-  | "NUMBER"
-  | "IDENTIFIER"
-  | "GROUP"
-  | "FUNCTION"
-  | "CALL"
-  | "SAY"
-  | "IF"
-  | "IF_ELSE"
-  | "REPEAT"
-  | "WHEN_KEY_PRESSED"
-  | "ARGUMENTS"
-  | "PARAMETERS"
-  | "ADDITIVE"
-  | "MULTIPLICATIVE"
-  | "ADD"
-  | "SUBTRACT"
-  | "MULTIPLY"
-  | "DIVIDE"
-  | "MODULO"
-  | "VALUE";
-
 // prettier-ignore
 export type Rule = {
   capture?: boolean;
-  type?: RuleType;
+  type?: string;
   sequence?: RuleOrString[];
   options?: RuleOrString[];
   repeat?: boolean;
   optional?: boolean;
   separator?: string;
-
   literal?: boolean;
   parse?: (token: Token) => string | number;
 };
 
 type RuleOrString = Rule | string;
 
-export type Grammar = Record<RuleType, Rule>;
+export type Grammar = Record<string, Rule>;
 
 // prettier-ignore
 const grammar: Grammar = {
 
   LITERAL: {
-    options: [{ type: STRING }, { type: NUMBER }],
+    options: [{ type: "STRING" }, { type: "NUMBER" }],
   },
 
   STRING: {
@@ -181,7 +140,7 @@ const grammar: Grammar = {
   VALUE: {
     options: [
       { type: "LITERAL" },
-      { type: IDENTIFIER },
+      { type: "IDENTIFIER" },
       { type: "CALL" },
       { type: "GROUP" },
     ],
@@ -190,7 +149,7 @@ const grammar: Grammar = {
   GROUP: {
     sequence: [
       "(", 
-      { type: EXPRESSION }, 
+      { type: "EXPRESSION" }, 
       ")"
     ],
   },
@@ -200,10 +159,10 @@ const grammar: Grammar = {
     capture: true,
     sequence: [
       "when",
-      { type: STRING },
+      { type: "STRING" },
       "key",
       "pressed",
-      { type: BLOCK },
+      { type: "BLOCK" },
     ],
   },
 
@@ -211,9 +170,9 @@ const grammar: Grammar = {
     capture: true,
     sequence: [
       "if", 
-      { type: EXPRESSION }, 
+      { type: "EXPRESSION" }, 
       "then", 
-      { type: BLOCK }
+      { type: "BLOCK" }
     ],
   },
 
@@ -221,9 +180,9 @@ const grammar: Grammar = {
     capture: true,
     sequence: [
       "if", 
-      { type: EXPRESSION }, 
+      { type: "EXPRESSION" }, 
       "then",
-      { type: BLOCK },
+      { type: "BLOCK" },
       "else",
       {
         options: [
@@ -239,8 +198,8 @@ const grammar: Grammar = {
     capture: true,
     sequence: [
       "repeat", 
-      { type: EXPRESSION }, 
-      { type: SCRIPT }
+      { type: "EXPRESSION" }, 
+      { type: "SCRIPT" }
     ],
   },
 
@@ -248,7 +207,7 @@ const grammar: Grammar = {
     capture: true,
     sequence: [
       "say", 
-      { type: EXPRESSION }
+      { type: "EXPRESSION" }
     ],
   },
 
@@ -256,9 +215,9 @@ const grammar: Grammar = {
     capture: true,
     sequence: [
       "function",
-      { type: IDENTIFIER },
-      { type: PARAMETERS },
-      { type: BLOCK },
+      { type: "IDENTIFIER" },
+      { type: "PARAMETERS" },
+      { type: "BLOCK" },
     ],
   },
 
@@ -266,9 +225,9 @@ const grammar: Grammar = {
     capture: true,
     sequence: [
       "call",
-      { type: IDENTIFIER },
-      { type: ARGUMENTS },
-      { type: BLOCK },
+      { type: "IDENTIFIER" },
+      { type: "ARGUMENTS" },
+      { type: "BLOCK" },
     ],
   },
 
@@ -276,7 +235,7 @@ const grammar: Grammar = {
     sequence: [
       "(",
       { 
-        type: EXPRESSION, 
+        type: "EXPRESSION", 
         repeat: true, 
         separator: "," 
       },
@@ -288,7 +247,7 @@ const grammar: Grammar = {
     sequence: [
       "(",
       { 
-        type: IDENTIFIER,
+        type: "IDENTIFIER",
         repeat: true,
         separator: ",",
       },
@@ -305,7 +264,7 @@ const grammar: Grammar = {
     options: [
       {
         sequence: [
-          "{", { type: SCRIPT }, "}"
+          "{", { type: "SCRIPT" }, "}"
         ]
       },
       { type: "STATEMENT" },
