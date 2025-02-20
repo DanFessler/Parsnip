@@ -1,35 +1,41 @@
-# 🌱 Parsnip - A Lightweight JavaScript Parser Generator
+# 🌱 Parsnip
 
-**Parsnip** is a JavaScript-native parser library designed to parse and construct **Concrete Syntax Trees (CSTs)** dynamically using **runtime-defined grammars**. Unlike traditional parsers, Parsnip allows **custom DSLs** to be defined and parsed with ease, making it perfect for scripting languages, interpreters, and domain-specific language development.
+**Parsnip** is a simple yet powerful parser generator for JavaScript allowing you to write custom domain specific languages using an object-based grammar schema.
+
+> NOTE: this is a work in progress and the API is subject to change.
 
 ## 🚀 Features
 
 ✅ **JavaScript-first** – No native dependencies, works in the browser and Node.js.  
-✅ **Dynamic Grammars** – Define and modify parsing rules at runtime.  
-✅ **CST-Based Parsing** – Preserves full syntactic structure, including keywords and expressions.  
+✅ **Dynamic Grammars** – Object-defined grammars which can be modified at runtime.  
 ✅ **Flexible Error Handling** – Provides detailed parsing errors with line/column tracking.
 
 ## 📦 Installation
 
-Currently, Parsnip is not published as an NPM package. You can clone the repository and use it directly.
+You can install Parsnip directly from GitHub using npm:
+
+```sh
+npm install danfessler/parsnip
+```
+
+Or clone the repository to use it directly:
 
 ```sh
 git clone https://github.com/danfessler/parsnip.git
 cd parsnip
 ```
 
-Or import it into your project:
-
-```ts
-import { Parser } from "./parser";
-import grammar from "./grammar";
-```
-
 ## 🔧 Usage Example
 
-### **1️⃣ Define a Grammar**
+### **1️⃣ Import Parsnip into your project**
 
-Parsnip grammars are defined as **JavaScript objects**, allowing for runtime flexibility.
+```ts
+import { Parser } from "parsnip";
+```
+
+### **2️⃣ Define a Grammar**
+
+Parsnip grammars are defined as **JavaScript objects**, allowing for runtime flexibility. This example defines a grammar for a simple print statement.
 
 ```ts
 const grammar = {
@@ -40,84 +46,55 @@ const grammar = {
       {
         type: "PRINT",
         capture: true,
-        sequence: ["print", { type: "EXPRESSION" }],
+        sequence: ["print", { type: "STRING" }],
       },
-      {
-        type: "ASSIGNMENT",
-        capture: true,
-        sequence: [{ type: "IDENTIFIER" }, "=", { type: "EXPRESSION" }],
-      },
+      // ... other statement rules
     ],
   },
 
-  EXPRESSION: {
-    options: [{ type: "IDENTIFIER" }, { type: "NUMBER" }],
-  },
-
-  IDENTIFIER: {
+  STRING: {
+    type: "STRING",
     capture: true,
     parse: (token) => {
-      if (token.type !== "identifier") throw "Expected an identifier";
-      return token.value;
-    },
-  },
-
-  NUMBER: {
-    capture: true,
-    parse: (token) => {
-      if (token.type !== "number") throw "Expected a number";
-      return Number(token.value);
+      if (token.type !== "string") throw "Expected a string literal";
+      return token.value.substring(1, token.value.length - 1);
     },
   },
 };
 ```
 
-### **2️⃣ Parse Some Code**
+### **3️⃣ Parse Some Code**
 
-Use Parsnip to parse a script into a **CST (Concrete Syntax Tree).**
+Instantiate Parsnip with your grammar and parse some text.
 
 ```ts
-import { Parser } from "./parser";
-import grammar from "./grammar";
-
 const parser = new Parser(grammar);
-const sourceCode = `print 42`;
-const cst = parser.parse(sourceCode);
-
-console.log(JSON.stringify(cst, null, 2));
+const cst = parser.parse(`print "hello world"`);
 ```
 
-🔹 **Example Output (CST)**
+**Example Output:**
 
 ```json
-{
-  "type": "PRINT",
-  "value": {
-    "type": "NUMBER",
-    "value": 42
+[
+  {
+    "type": "PRINT",
+    "value": {
+      "type": "STRING",
+      "value": "hello world"
+    }
   }
-}
+]
 ```
 
-### **3️⃣ Error Handling**
+## **Error Handling**
 
 If the input contains syntax errors, Parsnip provides **detailed error messages**.
 
-```ts
-try {
-  parser.parse("print");
-} catch (error) {
-  console.error(error.message);
-}
 ```
+ParseError: Expected a string literal at line 1:7
 
-🔹 **Example Error Message**
-
-```
-Expected 'EXPRESSION' but got end of input at line 1:6
-
-print
-     ^
+1 | print not_a_string
+          ^
 ```
 
 ## 📐 Grammar Schema
@@ -149,26 +126,18 @@ Each rule in a Parsnip grammar is defined using the following properties:
   FUNCTION_CALL: {
     capture: true,
     sequence: [
-      { type: "IDENTIFIER" },           // Function name
-      "(",                             // Opening parenthesis
+      { type: "IDENTIFIER" },  // Function name
+      "(",                     // Opening parenthesis
       {
-        type: "EXPRESSION",            // Arguments
-        repeat: true,                  // Multiple arguments allowed
-        separator: ","                 // Separated by commas
+        type: "EXPRESSION",    // Arguments
+        repeat: true,          // Multiple arguments allowed
+        separator: ","         // Separated by commas
       },
-      ")"                             // Closing parenthesis
+      ")"                      // Closing parenthesis
     ]
   }
 }
 ```
-
-## 🎯 Why Use Parsnip?
-
-Parsnip is **different from other parsers** like PEG.js, Chevrotain, or Tree-Sitter because:
-
-- **It allows runtime-defined grammars** (Tree-Sitter requires precompiled grammars).
-- **It produces a full CST**, not just an AST.
-- **It is lightweight and easy to use** for scripting and custom DSLs.
 
 ## 📌 Future Plans
 
