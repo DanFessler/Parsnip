@@ -39,13 +39,13 @@ class Parser {
     this.tokens = lex("");
   }
 
-  parse(program: string): ASTResult {
+  parse(program: string, rule: string = "SCRIPT"): ASTResult {
     const keywords = this.findKeywords(this.grammar);
     const tokens = lex(program, keywords);
     this.tokens = tokens;
 
     try {
-      return this.parseRule(this.grammar.SCRIPT, "SCRIPT");
+      return this.parseRule(this.grammar[rule as keyof Grammar], rule);
     } catch (e) {
       if (!(e instanceof ParseError)) throw e;
 

@@ -1,6 +1,6 @@
 import "./App.css";
-import test from "./example/comparison.txt?raw";
-import { Parser } from "./parser";
+import test from "./example/expressions.txt?raw";
+import { Parser } from "../lib/parser";
 import grammar from "./grammar";
 
 const parser = new Parser(grammar, false);
@@ -16,7 +16,7 @@ try {
 // Update App component to display parsed grammar
 
 function App() {
-  return <div></div>;
+  return <div>hello world!</div>;
 }
 
 export default App;
