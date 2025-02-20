@@ -4,6 +4,12 @@
 
 > NOTE: this is a work in progress and the API is subject to change.
 
+## Motivation
+
+I needed a parser that was simple to understand and easy to extend. It needed to be lightweight, run in the browser, and have little-to-no dependencies. I also wanted to support a JS-first approach to grammar definition rather than yet another DSL to learn which provides typing and IDE support benefits.
+
+I'm using Parsnip for various Domain Specific Languages that all need to run in the browser including a Text-based language that compiles to [Scratch](https://scratch.mit.edu/) blocks.
+
 ## 🚀 Features
 
 ✅ **JavaScript-first** – No native dependencies, works in the browser and Node.js.  
@@ -25,15 +31,15 @@ git clone https://github.com/danfessler/parsnip.git
 cd parsnip
 ```
 
-## 🔧 Usage Example
+## 🔧 Basic Usage
 
-### **1️⃣ Import Parsnip into your project**
+### **Import Parsnip into your project**
 
 ```ts
 import { Parser } from "parsnip";
 ```
 
-### **2️⃣ Define a Grammar**
+### **Define a Grammar**
 
 Parsnip grammars are defined as **JavaScript objects**, allowing for runtime flexibility. This example defines a grammar for a simple print statement.
 
@@ -63,7 +69,7 @@ const grammar = {
 };
 ```
 
-### **3️⃣ Parse Some Code**
+### **Parse Some Code**
 
 Instantiate Parsnip with your grammar and parse some text.
 
@@ -72,7 +78,7 @@ const parser = new Parser(grammar);
 const cst = parser.parse(`print "hello world"`);
 ```
 
-**Example Output:**
+### **Example Output:**
 
 ```json
 [
@@ -97,45 +103,61 @@ ParseError: Expected a string literal at line 1:7
           ^
 ```
 
-## 📐 Grammar Schema
+## Grammar Schema
 
-Each rule in a Parsnip grammar is defined using the following properties:
+The grammar is an object with named `Rule` objects which can be referenced by other rules. Each rule correlates to a node in the parse tree.
 
-### Core Properties
+#### Rule Object Attributes
 
-- **type**: `string` - References another rule by name
-- **capture**: `boolean` - When true, includes this node in the CST
-- **parse**: `(token: Token) => string | number` - Custom token parsing function
+- #### **type** _`string`_
 
-### Rule Structure
+  A reference to another rule in the grammar object. If `sequence` or `options` attributes are present, then the type will be used as the name of the node itself rather than a reference to another rule.
 
-- **sequence**: `(Rule | string)[]` - Array of elements that must appear in order
-- **options**: `(Rule | string)[]` - Array of alternative elements (only one must match)
+- #### **capture** _`boolean`_
 
-### Modifiers
+  If false (or omitted), the rule will not be captured as a node, allowing you to have abstract rules leveraged by the parser which are not necessary to include in the resulting parse tree.
 
-- **repeat**: `boolean` - Rule can appear multiple times
-- **optional**: `boolean` - Rule is optional
-- **separator**: `string` - String used between repeated elements (e.g., commas in lists)
-- **literal**: `boolean` - Matches exact string value
+- #### **parse** _`(token: Token) => any`_
 
-### Example Rule
+  a function that transforms a terminal node into the desired value in the resulting parse tree.
+
+- #### **sequence** _`(Rule | string)[]`_
+
+  an array of elements that must appear in order.
+
+- #### **options** _`(Rule | string)[]`_
+
+  an array of alternative elements (only one must match).
+
+- #### **repeat** _`boolean`_
+
+  if true, the rule can appear multiple times.
+
+- #### **optional** _`boolean`_
+
+  if true, the rule is optional.
+
+- #### **separator** _`string`_
+  a string that separates repeated elements.
+
+### Example Grammar Object:
 
 ```ts
 {
-  FUNCTION_CALL: {
-    capture: true,
-    sequence: [
-      { type: "IDENTIFIER" },  // Function name
-      "(",                     // Opening parenthesis
-      {
-        type: "EXPRESSION",    // Arguments
-        repeat: true,          // Multiple arguments allowed
-        separator: ","         // Separated by commas
+  FUNCTION_CALL: {             // The name of the rule
+    capture: true,             // Whether to include this node in the parse tree
+    sequence: [                // The sequence of elements that must appear in order
+      { type: "IDENTIFIER" },  // reference to the IDENTIFIER rule
+      "(",                     // Opening parenthesis literal token
+      {                        // an in-line nested rule (cannot be referenced)
+        type: "EXPRESSION",    //    reference to the EXPRESSION rule
+        repeat: true,          //    Multiple arguments allowed
+        separator: ","         //    Separated by commas
       },
-      ")"                      // Closing parenthesis
+      ")"                      // Closing parenthesis literal token
     ]
-  }
+  },
+  // ...other rules
 }
 ```
 
