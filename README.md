@@ -109,36 +109,16 @@ The grammar is an object with named `Rule` objects which can be referenced by ot
 
 #### Rule Object Attributes
 
-- #### **type** _`string`_
-
-  A reference to another rule in the grammar object. If `sequence` or `options` attributes are present, then the type will be used as the name of the node itself rather than a reference to another rule.
-
-- #### **capture** _`boolean`_
-
-  If false (or omitted), the rule will not be captured as a node, allowing you to have abstract rules leveraged by the parser which are not necessary to include in the resulting parse tree.
-
-- #### **parse** _`(token: Token) => any`_
-
-  a function that transforms a terminal node into the desired value in the resulting parse tree.
-
-- #### **sequence** _`(Rule | string)[]`_
-
-  an array of elements that must appear in order.
-
-- #### **options** _`(Rule | string)[]`_
-
-  an array of alternative elements (only one must match).
-
-- #### **repeat** _`boolean`_
-
-  if true, the rule can appear multiple times.
-
-- #### **optional** _`boolean`_
-
-  if true, the rule is optional.
-
-- #### **separator** _`string`_
-  a string that separates repeated elements.
+| Attribute     | Type                      | Description                                                                                                                                                                                              |
+| ------------- | ------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **type**      | _`string`_                | A reference to another rule in the grammar object. If `sequence` or `options` attributes are present, then the type will be used as the name of the node itself rather than a reference to another rule. |
+| **capture**   | _`boolean`_               | If false (or omitted), the rule will not be captured as a node, allowing you to have abstract rules leveraged by the parser which are not necessary to include in the resulting parse tree.              |
+| **parse**     | _`(token: Token) => any`_ | A function that transforms a terminal node into the desired value in the resulting parse tree.                                                                                                           |
+| **sequence**  | _`(Rule \| string)[]`_    | An array of elements that must appear in order.                                                                                                                                                          |
+| **options**   | _`(Rule \| string)[]`_    | An array of alternative elements (only one must match).                                                                                                                                                  |
+| **repeat**    | _`boolean`_               | If true, the rule can appear multiple times.                                                                                                                                                             |
+| **optional**  | _`boolean`_               | If true, the rule is optional.                                                                                                                                                                           |
+| **separator** | _`string`_                | A string that separates repeated elements.                                                                                                                                                               |
 
 ### Example Grammar Object:
 
