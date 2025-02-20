@@ -32,7 +32,6 @@ export type Rule = {
   repeat?: boolean;
   optional?: boolean;
   separator?: string;
-  literal?: boolean;
   parse?: (token: Token) => string | number;
 };
 
