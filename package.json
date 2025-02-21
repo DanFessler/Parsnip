@@ -11,11 +11,13 @@
     "dev:debug": "vite --debug",
     "build": "tsc -b && vite build",
     "lint": "eslint .",
-    "preview": "vite preview"
+    "preview": "vite preview",
+    "test": "vitest"
   },
   "dependencies": {
     "react": "^18.3.1",
-    "react-dom": "^18.3.1"
+    "react-dom": "^18.3.1",
+    "vitest": "^3.0.6"
   },
   "devDependencies": {
     "@eslint/js": "^9.15.0",
