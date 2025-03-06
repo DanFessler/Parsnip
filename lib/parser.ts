@@ -147,27 +147,38 @@ class Parser {
       throw new ParseError("Expected a string for endToken");
     }
 
-    // keep going until we find the endToken or the end of the token stream
     const result: ASTResult = [];
-    let peek = this.tokens.peek();
-    while (
-      peek && // prettier-ignore
-      peek.value !== endToken
-    ) {
+    while (true) {
+      // if end of input, break
+      if (!this.tokens.peek()) break;
+
+      // First try to parse the endToken
+      // even though we're parsing it here, we reset because we'll parse it again
+      // as part of the parent "sequence" rule that the endToken originally came from
+      if (endToken) {
+        const position = this.tokens.position();
+        try {
+          this.parseRule(endToken, currentType, endToken);
+          // If we successfully parsed the endToken, break the loop
+          this.tokens.seek(position);
+          break;
+        } catch (e) {
+          // If parsing endToken fails, restore position and continue with normal parsing
+          this.tokens.seek(position);
+        }
+      }
+
       try {
         // we strip out the repeat from the rule so we can parse it as normal without a feedback loop
         const strippedRule = { ...rule, repeat: false };
         const parsed = this.parseRule(strippedRule, currentType, endToken);
         if (parsed) result.push(parsed as ASTNode);
       } catch (e) {
-        // if the error is from a repeating rule, we want to exit entirely so we can report the error
-        // to the user even if we're in nested script blocks. Otherwise reported errors won't be accurate.
         if (e instanceof ParseError) {
           e.exit = true;
           throw e;
         }
       }
-      peek = this.tokens.peek();
     }
 
     return result;
@@ -220,21 +231,6 @@ class Parser {
     // we do this because some sequences have tokens that we dont care about in the resulting AST
     // such as keywords, separators, etc. so if there's only one element, we can just return that.
     return result.length === 1 ? result[0] : result;
-  }
-
-  private parseIgnoreRule(): ASTResult {
-    const position = this.tokens.position();
-    try {
-      const result = this.parseRule(this.grammar._IGNORE, "_IGNORE");
-      this.tokens.seek(position);
-      return result;
-    } catch (e) {
-      if (e instanceof ParseError) {
-        this.tokens.seek(position);
-        return;
-      }
-      throw e;
-    }
   }
 
   private parseOptionsRule(
@@ -306,6 +302,8 @@ class Parser {
   ): ASTResult {
     // if we've reached the end of the token stream and there's no rule to parse, throw an error
     if (!this.tokens.peek()) throw new ParseError("Unexpected end of input");
+
+    console.log("rule", rule, this.tokens.peek());
 
     // ignore comments and whitespace
     let peek = this.tokens.peek();  
