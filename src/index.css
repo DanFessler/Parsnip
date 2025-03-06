@@ -33,9 +33,9 @@ pre {
   padding: 0;
   white-space: pre;
   tab-size: 2;
-  font-family: "Source Code Pro", monospace;
-  letter-spacing: -0.04em;
-  /* font-family: Consolas, "Courier New", monospace; */
+  /* letter-spacing: -0.04em; */
+  /* font-family: "Source Code Pro", monospace; */
+  font-family: Consolas, "Courier New", monospace;
 }
 
 pre:focus,

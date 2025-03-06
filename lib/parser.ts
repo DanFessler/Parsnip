@@ -228,6 +228,7 @@ class Parser {
 
     // Try each option until one succeeds
     let furthestError: ParseError | undefined;
+    let furthestErrorCount = 0;
     const position = this.tokens.position();
     for (const option of rule.options!) {
       try {
@@ -236,12 +237,20 @@ class Parser {
         if (e instanceof ParseError) {
           if (!furthestError) {
             furthestError = e;
+            furthestErrorCount = 1;
           } else if (
             e.token &&
             furthestError.token &&
             e.token.index >= furthestError.token.index
           ) {
             furthestError = e;
+
+            // if the new error is at the same depth, we increment the count
+            if (e.token.index > furthestError.token.index) {
+              furthestErrorCount = 1;
+            } else {
+              furthestErrorCount++;
+            }
           }
 
           // Check if we should exit early
@@ -255,13 +264,16 @@ class Parser {
       }
     }
 
-    // TODO: Error reporting for this could be improved
-    // right now it always reports a singular furthest error
-    // but if there were multiple at the same depth, then we should report
-    // a special error that's more general.
+    // If multiple options failed at the furthest depth, report a single error for the current type we're parsing
+    if (furthestErrorCount > 1) {
+      throw new ParseError(
+        `Expected ${currentType} but got ${furthestError!.token?.value}`,
+        furthestError!.token
+      );
+    }
 
-    // If no options succeeded, throw the furthest error
-    throw furthestError;
+    // otherwise we can throw the more specific error that we encountered further down the tree
+    throw furthestError!;
   }
 
   // prettier-ignore

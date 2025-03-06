@@ -213,99 +213,108 @@ const grammar: Grammar = {
 
   STATEMENT: {
     options: [
+      { type: "SAY" },
+      { type: "IF_ELSE" },
+      { type: "IF" },
+      { type: "CALL" },
+      { type: "FUNCTION" },
+      { type: "REPEAT" },
+      { type: "WHEN_KEY_PRESSED" },
+      { type: "SET" },
+    ],
+  },
+
+  SAY: {
+    type: "SAY",    
+    capture: true,
+    sequence: [
+      "say", 
+      { type: "EXPRESSION" }
+    ],
+  },
+
+  IF_ELSE: {
+    type: "IF_ELSE",
+    capture: true,
+    sequence: [
+      "if", 
+      { type: "EXPRESSION" }, 
+      "then",
+      { type: "BLOCK" },
+      "else",
       {
-        type: "SAY",
-        capture: true,
-        sequence: [
-          "say", 
-          { type: "EXPRESSION" }
-        ],
-      },
-    
-      {
-        type: "IF_ELSE",
-        capture: true,
-        sequence: [
-          "if", 
-          { type: "EXPRESSION" }, 
-          "then",
-          { type: "BLOCK" },
-          "else",
-          {
-            options: [
-              { type: "IF_ELSE" },
-              { type: "IF" },
-              { type: "BLOCK" },
-            ],
-          },
-        ],
-      },
-    
-      {
-        type: "IF",
-        capture: true,
-        sequence: [
-          "if", 
-          { type: "EXPRESSION" }, 
-          "then", 
-          { type: "BLOCK" }
-        ],
-      },
-    
-      {
-        type: "CALL",
-        capture: true,
-        sequence: [
-          "call",
-          { type: "IDENTIFIER" },
-          { type: "ARGUMENTS" },
+        options: [
+          { type: "IF_ELSE" },
+          { type: "IF" },
           { type: "BLOCK" },
         ],
       },
-    
-      {
-        type: "FUNCTION",
-        capture: true,
-        sequence: [
-          "function",
-          { type: "IDENTIFIER" },
-          { type: "PARAMETERS" },
-          { type: "BLOCK" },
-        ],
-      },
-    
-      {
-        type: "REPEAT",
-        capture: true,
-        sequence: [
-          "repeat", 
-          { type: "EXPRESSION" }, 
-          { type: "SCRIPT" }
-        ],
-      },
-    
-      {
-        type: "WHEN_KEY_PRESSED",
-        capture: true,
-        sequence: [
-          "when",
-          { type: "STRING" },
-          "key",
-          "pressed",
-          { type: "BLOCK" },
-        ],
-      },
-    
-      {
-        type: "SET",
-        capture: true,
-        sequence: [
-          "set",
-          { type: "IDENTIFIER" },
-          "to",
-          { type: "EXPRESSION" },
-        ],
-      },
+    ],
+  },
+
+  IF: {
+    type: "IF",    
+    capture: true,
+    sequence: [
+      "if", 
+      { type: "EXPRESSION" }, 
+      "then", 
+      { type: "BLOCK" }
+    ],
+  },
+
+  CALL: {
+    type: "CALL",    
+    capture: true,
+    sequence: [
+      "call",
+      { type: "IDENTIFIER" },
+      { type: "ARGUMENTS" },
+      { type: "BLOCK" },
+    ],
+  },
+
+  FUNCTION: {
+    type: "FUNCTION",    
+    capture: true,
+    sequence: [
+      "function",
+      { type: "IDENTIFIER" },
+      { type: "PARAMETERS" },
+      { type: "BLOCK" },
+    ],
+  },
+
+  REPEAT: {
+    type: "REPEAT",    
+    capture: true,
+    sequence: [
+      "repeat", 
+      { type: "EXPRESSION" }, 
+      { type: "SCRIPT" }
+    ],
+  },
+
+  WHEN_KEY_PRESSED: {
+    type: "WHEN_KEY_PRESSED",    
+    capture: true,
+    sequence: [
+      "when",
+      { type: "STRING" },
+      "key",
+      "pressed",
+      { type: "BLOCK" },
+    ],
+  },
+
+  SET: {
+    type: "SET",    
+    capture: true,
+    sequence: [
+      "set",
+      { type: "IDENTIFIER" },
+      "to",
+      { type: "EXPRESSION" },
     ],
   },
 };
