@@ -177,7 +177,7 @@ export function lex(input: string, keywords: string[] = []): TokenStream {
   }
 
   return createTokenStream(
-    tokens.filter((token) => token.type !== "whitespace"),
+    tokens, //tokens.filter((token) => token.type !== "whitespace"),
     input
   );
 }

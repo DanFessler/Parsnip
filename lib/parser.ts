@@ -11,7 +11,7 @@ import { lex } from "./lexer";
 */
 
 // TODO:
-// Add unit tests
+// should provide a way to configure ignored tokens (or maybe even whole rules?)
 // the lexer should analyze the grammar to extract patterns instead of a separate definition
 
 class ParseError extends Error {
@@ -43,6 +43,7 @@ class Parser {
     const keywords = this.findKeywords(this.grammar);
     const tokens = lex(program, keywords);
     this.tokens = tokens;
+    console.log("tokens", this.tokens);
 
     try {
       return this.parseRule(this.grammar[rule as keyof Grammar], rule);
@@ -148,9 +149,10 @@ class Parser {
 
     // keep going until we find the endToken or the end of the token stream
     const result: ASTResult = [];
+    let peek = this.tokens.peek();
     while (
-      this.tokens.peek() && // prettier-ignore
-      this.tokens.peek()?.value !== endToken
+      peek && // prettier-ignore
+      peek.value !== endToken
     ) {
       try {
         // we strip out the repeat from the rule so we can parse it as normal without a feedback loop
@@ -165,6 +167,7 @@ class Parser {
           throw e;
         }
       }
+      peek = this.tokens.peek();
     }
 
     return result;
@@ -219,6 +222,21 @@ class Parser {
     return result.length === 1 ? result[0] : result;
   }
 
+  private parseIgnoreRule(): ASTResult {
+    const position = this.tokens.position();
+    try {
+      const result = this.parseRule(this.grammar._IGNORE, "_IGNORE");
+      this.tokens.seek(position);
+      return result;
+    } catch (e) {
+      if (e instanceof ParseError) {
+        this.tokens.seek(position);
+        return;
+      }
+      throw e;
+    }
+  }
+
   private parseOptionsRule(
     rule: Rule,
     currentType: string,
@@ -226,11 +244,15 @@ class Parser {
   ): ASTResult {
     if (!rule.options) throw new ParseError("Expected options for rule");
 
+    // we add the ignore rule to the options so we can ignore comments and whitespace (or whatever else we want)
+    const theseOptions = rule.options;
+    // const theseOptions = [...rule.options, this.grammar._IGNORE];
+
     // Try each option until one succeeds
     let furthestError: ParseError | undefined;
     let furthestErrorCount = 0;
     const position = this.tokens.position();
-    for (const option of rule.options!) {
+    for (const option of theseOptions) {
       try {
         return this.parseRule(option, currentType, endToken);
       } catch (e) {
@@ -246,7 +268,7 @@ class Parser {
             furthestError = e;
 
             // if the new error is at the same depth, we increment the count
-            if (e.token.index > furthestError.token.index) {
+            if (e.token.index > furthestError.token!.index) {
               furthestErrorCount = 1;
             } else {
               furthestErrorCount++;
@@ -282,13 +304,14 @@ class Parser {
     currentType: string,
     endToken?: Rule | string
   ): ASTResult {
-
     // if we've reached the end of the token stream and there's no rule to parse, throw an error
     if (!this.tokens.peek()) throw new ParseError("Unexpected end of input");
 
-    // ignore comments
-    while (this.tokens.peek()?.type === "comment") {
+    // ignore comments and whitespace
+    let peek = this.tokens.peek();  
+    while (peek?.type === "comment" || peek?.type === "whitespace") {
       this.tokens.consume();
+      peek = this.tokens.peek();
     }
 
     // if the rule is a string, parse it as a keyword
@@ -300,6 +323,7 @@ class Parser {
       const {line, column} = this.tokens.peek()!;
       const position = this.debug ? {line, column} : {};
       const parsed = this.parseRule(strippedRule, currentType, endToken);
+      
       return {
         type: rule.type,
         value: parsed,

@@ -20,6 +20,13 @@ import { Token, Grammar } from "../lib/types";
 // prettier-ignore
 const grammar: Grammar = {
 
+  _IGNORE: {
+    options: [
+      { type: "COMMENT", repeat: true },
+      { type: "WHITESPACE", repeat: true },
+    ],
+  },
+
   LITERAL: {
     options: [{ type: "STRING" }, { type: "NUMBER" }],
   },
