@@ -28,6 +28,22 @@ class ParseError extends Error {
   }
 }
 
+export class ParseObject {
+  AST: ASTResult;
+
+  constructor(AST: ASTResult) {
+    this.AST = AST;
+    this.reconstruct = this.reconstruct.bind(this);
+  }
+
+  reconstruct(AST: ASTResult): string {
+    if (typeof AST === "string") return AST;
+    if (typeof AST === "number") return AST.toString();
+    if (!Array.isArray(AST)) return this.reconstruct((AST as ASTNode).value);
+    return (AST as ASTNode[]).map(this.reconstruct).join("");
+  }
+}
+
 class Parser {
   private tokens: TokenStream;
   private grammar: Grammar;
@@ -43,7 +59,7 @@ class Parser {
     const keywords = this.findKeywords(this.grammar);
     const tokens = lex(program, keywords);
     this.tokens = tokens;
-    console.log("tokens", this.tokens);
+    // console.log("tokens", this.tokens);
 
     try {
       return this.parseRule(this.grammar[rule as keyof Grammar], rule);
@@ -303,7 +319,7 @@ class Parser {
     // if we've reached the end of the token stream and there's no rule to parse, throw an error
     if (!this.tokens.peek()) throw new ParseError("Unexpected end of input");
 
-    console.log("rule", rule, this.tokens.peek());
+    // console.log("rule", rule, this.tokens.peek());
 
     // ignore comments and whitespace
     let peek = this.tokens.peek();  
