@@ -45,14 +45,29 @@ export class ParseObject {
   }
 }
 
+type ParserConfig = {
+  debug?: boolean;
+  ignoredTokens?: string[];
+  omitIgnoredTokens?: boolean;
+  omitKeywords?: boolean;
+};
+
 class Parser {
   private tokens: TokenStream;
   private grammar: Grammar;
   private debug: boolean;
 
-  constructor(grammar: Grammar, debug = false) {
+  constructor(grammar: Grammar, private config: ParserConfig = {}) {
+    const defaultConfig: ParserConfig = {
+      debug: false,
+      ignoredTokens: ["whitespace", "comment"],
+      omitIgnoredTokens: true,
+      omitKeywords: true,
+    };
+
+    this.config = { ...defaultConfig, ...config };
     this.grammar = grammar;
-    this.debug = debug;
+    this.debug = this.config.debug ?? false;
     this.tokens = lex("");
   }
 
@@ -60,7 +75,7 @@ class Parser {
     const keywords = this.findKeywords(this.grammar);
     const tokens = lex(program, keywords);
     this.tokens = tokens;
-    // console.log("tokens", this.tokens);
+    console.log("tokens", this.tokens);
 
     try {
       return this.parseRule(this.grammar[rule as keyof Grammar], rule);
@@ -105,7 +120,7 @@ class Parser {
     return Array.from(keywords);
   }
 
-  private parseKeyword(rule: string): ASTResult {
+  private parseKeyword(rule: string): string | undefined {
     const token = this.tokens.consume();
     const value = token.value as string;
 
@@ -123,17 +138,11 @@ class Parser {
       throw new ParseError(`Expected '${rule}' but got '${value}'`, token);
     }
 
-    // if we're not in debug mode, we don't need to return keywords as nodes
-    // they're mostly just extra noise, however if we wanted to reproduce the
-    // source from the AST, we would need every last token represented in the AST.
-    if (!this.debug) return;
+    // even though it's a keyword, we still return it so we can reconstruct the original text
+    // It's the job of the implementer to transform the CST into the desired AST.
 
-    return {
-      type: "KEYWORD",
-      value: token.value,
-      line: token.line,
-      column: token.column,
-    };
+    if (this.config.omitKeywords) return;
+    return token.value as string;
   }
 
   private parsePrimitiveRule(rule: Rule): string | number {
@@ -179,7 +188,7 @@ class Parser {
           // If we successfully parsed the endToken, break the loop
           this.tokens.seek(position);
           break;
-        } catch (e) {
+        } catch {
           // If parsing endToken fails, restore position and continue with normal parsing
           this.tokens.seek(position);
         }
@@ -323,41 +332,55 @@ class Parser {
     // console.log("rule", rule, this.tokens.peek());
 
     // ignore comments and whitespace
-    let peek = this.tokens.peek();  
+    let peek = this.tokens.peek();
+    const ignoredTokens: Token[] = [];
     while (peek?.type === "comment" || peek?.type === "whitespace") {
-      this.tokens.consume();
+      ignoredTokens.push(this.tokens.consume());
       peek = this.tokens.peek();
     }
+    
+    // For debugging, you could uncomment this:
+    // if (ignoredTokens.length > 0) {
+    //   console.log("Ignored tokens:", ignoredTokens);
+    // }
 
-    // if the rule is a string, parse it as a keyword
-    if (typeof rule === "string") return this.parseKeyword(rule);
+    const parseResult = (() => {
+      // if the rule is a string, parse it as a keyword
+      if (typeof rule === "string") return this.parseKeyword(rule);
 
-    // if the rule is a capture rule, strip the capture rule and reparse
-    if (rule.capture) {
-      const strippedRule = { ...rule, capture: false };
-      const {line, column} = this.tokens.peek()!;
-      const position = this.debug ? {line, column} : {};
-      const parsed = this.parseRule(strippedRule, currentType, endToken);
+      // if the rule is a capture rule, strip the capture rule and reparse
+      if (rule.capture) {
+        const strippedRule = { ...rule, capture: false };
+        const {line, column} = this.tokens.peek()!;
+        const position = this.debug ? {line, column} : {};
+        const parsed = this.parseRule(strippedRule, currentType, endToken);
+        
+        return {
+          type: rule.type,
+          value: parsed,
+          ...position,
+        } as ASTNode;
+      }
       
-      return {
-        type: rule.type,
-        value: parsed,
-        ...position,
-      } as ASTNode;
-    }
-    
-    // otherwise parse with the appropriate subparser based on the rule's properties
-    if (rule.parse)    return this.parsePrimitiveRule(rule);
-    if (rule.sequence) return this.parseSequenceRule(rule, currentType);
-    if (rule.repeat)   return this.parseRepeatingRule(rule, currentType, endToken);
-    if (rule.optional) return this.parseOptionalRule(rule, currentType, endToken);
-    if (rule.options)  return this.parseOptionsRule(rule, currentType, endToken);
+      // otherwise parse with the appropriate subparser based on the rule's properties
+      if (rule.parse)    return this.parsePrimitiveRule(rule);
+      if (rule.sequence) return this.parseSequenceRule(rule, currentType);
+      if (rule.repeat)   return this.parseRepeatingRule(rule, currentType, endToken);
+      if (rule.optional) return this.parseOptionalRule(rule, currentType, endToken);
+      if (rule.options)  return this.parseOptionsRule(rule, currentType, endToken);
 
-    // if we made it this far, then we need to recursively parse with the referenced rule
-    if (rule.type) return this.parseRule(this.grammar[rule.type as keyof Grammar], rule.type, endToken);
-    
-    // if we didn't find a matching rule, throw an error
-    throw new ParseError("No matching rule found");
+      // if we made it this far, then we need to recursively parse with the referenced rule
+      if (rule.type) return this.parseRule(this.grammar[rule.type as keyof Grammar], rule.type, endToken);
+      
+      // if we didn't find a matching rule, throw an error
+      throw new ParseError("No matching rule found");
+    })();
+
+    // return parseResult;
+    if (ignoredTokens.length && !this.config.omitIgnoredTokens) {
+      return [...ignoredTokens, parseResult!].flat() as ASTResult;
+    }
+    return parseResult;
   }
 }
 

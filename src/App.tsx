@@ -5,7 +5,11 @@ import grammar from "./grammar";
 import { useState } from "react";
 import CodeEditor from "./components/CodeEditor";
 
-const parser = new Parser(grammar, true);
+const parser = new Parser(grammar, {
+  debug: true,
+  omitIgnoredTokens: false,
+  omitKeywords: false,
+});
 try {
   const parsed = parser.parse(testScript);
   // console.log("tokens", parser);
