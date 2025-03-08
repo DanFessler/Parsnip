@@ -13,6 +13,7 @@ import { lex } from "./lexer";
 // TODO:
 // should provide a way to configure ignored tokens (or maybe even whole rules?)
 // the lexer should analyze the grammar to extract patterns instead of a separate definition
+// implement separators
 
 class ParseError extends Error {
   constructor(

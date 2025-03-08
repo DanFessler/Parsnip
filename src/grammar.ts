@@ -15,6 +15,8 @@
  * - separator: String used between repeated elements (e.g., comma in function args)
  */
 
+// TODO: implement separators
+
 import { Token, Grammar } from "../lib/types";
 
 // prettier-ignore
@@ -182,9 +184,17 @@ const grammar: Grammar = {
     sequence: [
       "(",
       { 
-        type: "EXPRESSION", 
-        repeat: true, 
-        separator: "," 
+        options: [
+          { sequence: [
+            { type: "EXPRESSION" },
+            { 
+              sequence: [",", { type: "EXPRESSION" }],
+              repeat: true,
+              optional: true
+            }
+          ]},
+          { sequence: [] },
+        ]
       },
       ")",
     ],
@@ -194,9 +204,17 @@ const grammar: Grammar = {
     sequence: [
       "(",
       { 
-        type: "IDENTIFIER",
-        repeat: true,
-        separator: ",",
+        options: [
+          { sequence: [
+            { type: "IDENTIFIER" },
+            { 
+              sequence: [",", { type: "IDENTIFIER" }],
+              repeat: true,
+              optional: true
+            }
+          ]},
+          { sequence: [] },
+        ]
       },
       ")",
     ],

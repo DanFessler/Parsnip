@@ -2,6 +2,7 @@ import { Token, TokenStream } from "./types";
 
 const operators = ["+", "-", "*", "/", ">", "<", "=", "%"];
 const brackets = ["(", ")", "[", "]", "{", "}"];
+const separators = [",", ".", ";", ":"];
 
 export function lex(input: string, keywords: string[] = []): TokenStream {
   const tokens: Token[] = [];
@@ -171,9 +172,26 @@ export function lex(input: string, keywords: string[] = []): TokenStream {
       continue;
     }
 
-    // Skip unknown characters
-    current++;
-    column++;
+    // handle separators
+    if (separators.includes(char)) {
+      tokens.push({
+        type: "separator",
+        value: char,
+        line,
+        column,
+        index: current,
+      });
+      current++;
+      column++;
+      continue;
+    }
+
+    // Handle unknown characters
+    const error = new Error(
+      `Unexpected character '${char}' at line ${line}:${column}`
+    );
+    error.name = "LexerError";
+    throw error;
   }
 
   return createTokenStream(
