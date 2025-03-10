@@ -256,7 +256,7 @@ class Parser {
     // if the result is a single element, return the element, otherwise return the array.
     // we do this because some sequences have tokens that we dont care about in the resulting AST
     // such as keywords, separators, etc. so if there's only one element, we can just return that.
-    return result.length === 1 ? result[0] : result;
+    return result.length === 1 ? result[0] : result.flat();
   }
 
   private parseOptionsRule(
