@@ -22,15 +22,8 @@ import { Token, Grammar } from "../lib/types";
 // prettier-ignore
 const grammar: Grammar = {
 
-  _IGNORE: {
-    options: [
-      { type: "COMMENT", repeat: true },
-      { type: "WHITESPACE", repeat: true },
-    ],
-  },
-
   LITERAL: {
-    options: [{ type: "STRING" }, { type: "NUMBER" }],
+    options: [{ type: "STRING", capture: true }, { type: "NUMBER", capture: true }],
   },
 
   STRING: {
@@ -254,7 +247,7 @@ const grammar: Grammar = {
     capture: true,
     sequence: [
       "say", 
-      { type: "EXPRESSION" }
+      { type: "EXPRESSION", id: "message", capture: true }
     ],
   },
 

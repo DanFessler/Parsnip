@@ -331,10 +331,11 @@ class Parser {
 
     // console.log("rule", rule, this.tokens.peek());
 
-    // ignore comments and whitespace
+    // ignore comments and whitespace based on _IGNORE rule
     let peek = this.tokens.peek();
     const ignoredTokens: Token[] = [];
-    while (peek?.type === "comment" || peek?.type === "whitespace") {
+    // while (peek?.type === "comment" || peek?.type === "whitespace") {
+    while (this.config.ignoredTokens?.includes(peek?.type ?? "")) {
       ignoredTokens.push(this.tokens.consume());
       peek = this.tokens.peek();
     }
@@ -356,6 +357,7 @@ class Parser {
         const parsed = this.parseRule(strippedRule, currentType, endToken);
         
         return {
+          id: rule.id,
           type: rule.type,
           value: parsed,
           ...position,
@@ -370,7 +372,18 @@ class Parser {
       if (rule.options)  return this.parseOptionsRule(rule, currentType, endToken);
 
       // if we made it this far, then we need to recursively parse with the referenced rule
-      if (rule.type) return this.parseRule(this.grammar[rule.type as keyof Grammar], rule.type, endToken);
+      if (rule.type) {
+        const ruleType = this.grammar[rule.type as keyof Grammar];
+        if (ruleType) return this.parseRule(ruleType, rule.type, endToken);
+
+        // if the rule wasn't present in the grammar, then just try to match the token with the type
+        if (rule.type.toLowerCase() === this.tokens.peek()?.type.toLowerCase()) {
+          return this.tokens.consume();
+        }
+
+        // if we didn't find a matching rule, throw an error
+        throw new ParseError(`No matching rule found for ${rule.type}`);
+      }
       
       // if we didn't find a matching rule, throw an error
       throw new ParseError("No matching rule found");

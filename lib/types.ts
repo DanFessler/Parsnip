@@ -6,7 +6,8 @@ type TokenType =
   | "comment"
   | "string"
   | "whitespace"
-  | "identifier";
+  | "identifier"
+  | "separator";
 
 export interface Token {
   type: TokenType;
@@ -14,6 +15,7 @@ export interface Token {
   line: number;
   column: number;
   index: number;
+  id?: string;
 }
 
 export interface TokenStream {
@@ -33,6 +35,7 @@ export type Rule = {
   optional?: boolean;
   separator?: string;
   parse?: (token: Token) => string | number;
+  id?: string;
 };
 
 type RuleOrString = Rule | string;
@@ -44,6 +47,7 @@ export type ASTNode = {
   value: ASTNode | ASTNode[] | string | number;
   line: number;
   column: number;
+  id?: string;
 };
 
 export type ASTResult = ASTNode | ASTNode[] | string | number | undefined;

@@ -7,8 +7,8 @@ import CodeEditor from "./components/CodeEditor";
 
 const parser = new Parser(grammar, {
   debug: true,
-  omitIgnoredTokens: false,
-  omitKeywords: false,
+  omitIgnoredTokens: true,
+  omitKeywords: true,
 });
 try {
   const parsed = parser.parse(testScript);
