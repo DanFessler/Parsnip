@@ -1,5 +1,39 @@
-import { Grammar, Rule, Token, TokenStream, ASTNode, ASTResult } from "./types";
-import { lex } from "./lexer";
+import {
+  Grammar,
+  Rule,
+  Token,
+  TokenStream,
+  ASTNode,
+  ASTResult,
+} from "./types";
+import { defaultLexOptions, lex, type LexOptions } from "./lexer";
+
+/** Optional hooks for `Parser.parse` (LTPB-style lexers, normalization, etc.). */
+export type ParserParseOptions = {
+  lexOptions?: LexOptions;
+  /** Applied to the source string before lexing. Default: identity. */
+  normalizeInput?: (source: string) => string;
+};
+
+export function collectGrammarKeywords(grammar: Grammar): string[] {
+  const keywords = new Set<string>();
+  function walkRule(rule: Rule | string) {
+    if (typeof rule === "string") {
+      keywords.add(rule);
+      return;
+    }
+    if (Array.isArray(rule.sequence))
+      rule.sequence.forEach(walkRule);
+    if (Array.isArray(rule.options))
+      rule.options.forEach(walkRule);
+    if (rule.until)
+      typeof rule.until === "string"
+        ? keywords.add(rule.until)
+        : walkRule(rule.until);
+  }
+  Object.values(grammar).forEach(walkRule);
+  return Array.from(keywords);
+}
 
 /**
   The general idea behind this parser is it takes a token stream and
@@ -19,7 +53,7 @@ class ParseError extends Error {
     message: string,
     public token?: Token,
     public expected?: string,
-    public exit?: boolean
+    public exit?: boolean,
   ) {
     super(message);
     this.name = "ParseError";
@@ -32,6 +66,8 @@ class Parser {
   private tokens: TokenStream;
   private grammar: Grammar;
   private debug: boolean;
+  /** Derived from `LexOptions.newlineBridgeBeforeKeywordRules` (lowercased). */
+  private newlineBridgeKeywordSet: Set<string> | null = null;
 
   constructor(grammar: Grammar, debug = false) {
     this.grammar = grammar;
@@ -39,12 +75,68 @@ class Parser {
     this.tokens = lex("");
   }
 
-  parse(program: string, rule: string = "SCRIPT"): ASTResult {
-    const keywords = this.findKeywords(this.grammar);
-    const tokens = lex(program, keywords);
+  parse(
+    program: string,
+    rule: string = "SCRIPT",
+    parseOptions?: ParserParseOptions,
+  ): ASTResult {
+    const keywords = collectGrammarKeywords(this.grammar);
+    const src = parseOptions?.normalizeInput
+      ? parseOptions.normalizeInput(program)
+      : program;
+    const lexOpts = { ...defaultLexOptions, ...parseOptions?.lexOptions };
+    const br = lexOpts.newlineBridgeBeforeKeywordRules;
+    this.newlineBridgeKeywordSet =
+      lexOpts.emitNewlineTokens && br && br.length > 0
+        ? new Set(br.map((k) => k.toLowerCase()))
+        : null;
+    const tokens = lex(src, keywords, lexOpts);
     this.tokens = tokens;
     if (this.debug) console.log("tokens", this.tokens);
 
+    return this.parseWithCurrentStream(rule);
+  }
+
+  /** Parse an existing token stream (e.g. after custom lex + filtering). The stream must support `getLinesOfCode` if you rely on error context. */
+  parseFromStream(
+    stream: TokenStream,
+    rule: string = "SCRIPT",
+    parseOptions?: ParserParseOptions,
+  ): ASTResult {
+    const lexOpts = { ...defaultLexOptions, ...parseOptions?.lexOptions };
+    const br = lexOpts.newlineBridgeBeforeKeywordRules;
+    this.newlineBridgeKeywordSet =
+      lexOpts.emitNewlineTokens && br && br.length > 0
+        ? new Set(br.map((k) => k.toLowerCase()))
+        : null;
+    this.tokens = stream;
+    if (this.debug) console.log("tokens", this.tokens);
+    return this.parseWithCurrentStream(rule);
+  }
+
+  /**
+   * After a full SCRIPT parse, reject streams that still have significant tokens.
+   * Otherwise a failed STMT mid-file can leave the rest of the program unparsed silently.
+   */
+  assertNoTrailingInput(): void {
+    let peek = this.tokens.peek();
+    while (
+      peek?.type === "comment" ||
+      peek?.type === "whitespace" ||
+      peek?.type === "newline"
+    ) {
+      this.tokens.consume();
+      peek = this.tokens.peek();
+    }
+    if (peek) {
+      throw new ParseError(
+        `Unexpected token after end of script: '${peek.value}'`,
+        peek,
+      );
+    }
+  }
+
+  private parseWithCurrentStream(rule: string): ASTResult {
     try {
       return this.parseRule(this.grammar[rule as keyof Grammar], rule);
     } catch (e) {
@@ -67,28 +159,34 @@ class Parser {
     }
   }
 
-  // function to find all keywords in the grammar
-  // it walks the tree till it finds a string instead of a rule object
-  // and adds it to an array.
-  private findKeywords(grammar: Grammar): string[] {
-    const keywords = new Set<string>();
-
-    // Helper function to recursively walk through rules
-    function walkRule(rule: Rule | string) {
-      if (typeof rule === "string") {
-        return keywords.add(rule);
+  private parseKeyword(rule: string): ASTResult {
+    if (rule === "\n") {
+      const token = this.tokens.consume();
+      if (token.type !== "newline" || String(token.value) !== "\n") {
+        throw new ParseError("Expected newline", token);
       }
-      rule.sequence?.forEach(walkRule);
-      rule.options?.forEach(walkRule);
+      if (!this.debug) return;
+      return {
+        type: "KEYWORD",
+        value: "\n",
+        line: token.line,
+        column: token.column,
+      };
     }
 
-    // Walk through all rules in the grammar
-    Object.values(grammar).forEach(walkRule);
+    if (this.newlineBridgeKeywordSet?.has(rule.toLowerCase())) {
+      let p = this.tokens.peek();
+      while (p?.type === "newline") {
+        this.tokens.consume();
+        p = this.tokens.peek();
+      }
+      while (p?.type === "comment" || p?.type === "whitespace") {
+        this.tokens.consume();
+        p = this.tokens.peek();
+      }
+      if (!p) throw new ParseError("Unexpected end of input");
+    }
 
-    return Array.from(keywords);
-  }
-
-  private parseKeyword(rule: string): ASTResult {
     const token = this.tokens.consume();
     const value = token.value as string;
 
@@ -138,27 +236,26 @@ class Parser {
   private parseRepeatingRule(
     rule: Rule,
     currentType: string,
-    endToken?: Rule | string
+    endToken?: Rule | string,
   ): ASTResult {
-    // The endToken must be a primitive string, not a rule, since we don't parse the endToken
-    // this means any repeating rule must have an endToken that is a primitive string in the
-    // grammar or have one loaned to it from a parent rule.
-    if (typeof endToken !== "string" && endToken !== undefined) {
-      throw new ParseError("Expected a string for endToken");
-    }
+    const stopLookahead = rule.until ?? endToken;
 
     const result: ASTResult = [];
     while (true) {
       // if end of input, break
       if (!this.tokens.peek()) break;
 
-      // First try to parse the endToken
+      // First try to parse the endToken / until lookahead
       // even though we're parsing it here, we reset because we'll parse it again
       // as part of the parent "sequence" rule that the endToken originally came from
-      if (endToken) {
+      if (stopLookahead) {
         const position = this.tokens.position();
         try {
-          this.parseRule(endToken, currentType, endToken);
+          if (typeof stopLookahead === "string") {
+            this.parseRule(stopLookahead, currentType, stopLookahead);
+          } else {
+            this.parseRule(stopLookahead, currentType);
+          }
           // If we successfully parsed the endToken, break the loop
           this.tokens.seek(position);
           break;
@@ -168,16 +265,18 @@ class Parser {
         }
       }
 
+      const iterationStart = this.tokens.position();
       try {
-        // we strip out the repeat from the rule so we can parse it as normal without a feedback loop
         const strippedRule = { ...rule, repeat: false };
         const parsed = this.parseRule(strippedRule, currentType, endToken);
         if (parsed) result.push(parsed as ASTNode);
       } catch (e) {
         if (e instanceof ParseError) {
-          e.exit = true;
-          throw e;
+          if (e.exit) throw e;
+          this.tokens.seek(iterationStart);
+          break;
         }
+        throw e;
       }
     }
 
@@ -187,7 +286,7 @@ class Parser {
   private parseOptionalRule(
     rule: Rule,
     currentType: string,
-    endToken?: Rule | string
+    endToken?: Rule | string,
   ): ASTResult {
     if (!rule.optional) throw new ParseError("Expected a optional for rule");
 
@@ -236,7 +335,7 @@ class Parser {
   private parseOptionsRule(
     rule: Rule,
     currentType: string,
-    endToken?: Rule | string
+    endToken?: Rule | string,
   ): ASTResult {
     if (!rule.options) throw new ParseError("Expected options for rule");
 
@@ -286,7 +385,7 @@ class Parser {
     if (furthestErrorCount > 1) {
       throw new ParseError(
         `Expected ${currentType} but got ${furthestError!.token?.value}`,
-        furthestError!.token
+        furthestError!.token,
       );
     }
 
@@ -300,46 +399,55 @@ class Parser {
     currentType: string,
     endToken?: Rule | string
   ): ASTResult {
-    // if we've reached the end of the token stream and there's no rule to parse, throw an error
-    if (!this.tokens.peek()) throw new ParseError("Unexpected end of input");
-
     if (this.debug) console.log("rule", rule, this.tokens.peek());
 
     // ignore comments and whitespace
-    let peek = this.tokens.peek();  
+    let peek = this.tokens.peek();
     while (peek?.type === "comment" || peek?.type === "whitespace") {
       this.tokens.consume();
       peek = this.tokens.peek();
     }
 
     // if the rule is a string, parse it as a keyword
-    if (typeof rule === "string") return this.parseKeyword(rule);
+    if (typeof rule === "string") {
+      if (!peek) throw new ParseError("Unexpected end of input");
+      return this.parseKeyword(rule);
+    }
 
     // if the rule is a capture rule, strip the capture rule and reparse
     if (rule.capture) {
       const strippedRule = { ...rule, capture: false };
-      const {line, column} = this.tokens.peek()!;
-      const position = this.debug ? {line, column} : {};
+      const head = this.tokens.peek();
+      const { line, column } = head ?? { line: 0, column: 0 };
+      const position = { line, column };
       const parsed = this.parseRule(strippedRule, currentType, endToken);
-      
+
       return {
         type: rule.type,
         value: parsed,
         ...position,
       } as ASTNode;
     }
-    
-    // otherwise parse with the appropriate subparser based on the rule's properties
-    if (rule.parse)    return this.parsePrimitiveRule(rule);
-    if (rule.sequence) return this.parseSequenceRule(rule, currentType);
-    if (rule.repeat)   return this.parseRepeatingRule(rule, currentType, endToken);
-    if (rule.optional) return this.parseOptionalRule(rule, currentType, endToken);
-    if (rule.options)  return this.parseOptionsRule(rule, currentType, endToken);
 
-    // if we made it this far, then we need to recursively parse with the referenced rule
-    if (rule.type) return this.parseRule(this.grammar[rule.type as keyof Grammar], rule.type, endToken);
-    
-    // if we didn't find a matching rule, throw an error
+    // Optional / repeat may succeed at EOF (optional parts, zero-or-more loops)
+    if (rule.optional) {
+      return this.parseOptionalRule(rule, currentType, endToken);
+    }
+    if (rule.repeat) {
+      return this.parseRepeatingRule(rule, currentType, endToken);
+    }
+
+    if (!this.tokens.peek()) {
+      throw new ParseError("Unexpected end of input");
+    }
+
+    if (rule.parse) return this.parsePrimitiveRule(rule);
+    if (rule.sequence) return this.parseSequenceRule(rule, currentType);
+    if (rule.options) return this.parseOptionsRule(rule, currentType, endToken);
+
+    if (rule.type)
+      return this.parseRule(this.grammar[rule.type as keyof Grammar], rule.type, endToken);
+
     throw new ParseError("No matching rule found");
   }
 }

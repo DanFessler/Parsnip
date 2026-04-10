@@ -6,6 +6,7 @@ type TokenType =
   | "comment"
   | "string"
   | "whitespace"
+  | "newline"
   | "identifier";
 
 export interface Token {
@@ -30,6 +31,11 @@ export type Rule = {
   sequence?: RuleOrString[];
   options?: RuleOrString[];
   repeat?: boolean;
+  /**
+   * When `repeat` is true, before each body attempt try this rule as lookahead: if it
+   * parses successfully, rewind and stop the loop (Typical: `else` / `endif`).
+   */
+  until?: Rule | string;
   optional?: boolean;
   separator?: string;
   parse?: (token: Token) => string | number;

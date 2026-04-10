@@ -16,9 +16,27 @@ export type LexOptions = {
   multiCharComparisons?: boolean;
   /** Extra single-character operator tokens (e.g. `;` for BASIC `Print a; b`). */
   additionalOperators?: string[];
+  /**
+   * Emit each line break as its own `newline` token (value `"\n"`). Horizontal
+   * whitespace stays `whitespace`. Lets grammars match `"\\n"` as a primitive.
+   */
+  emitNewlineTokens?: boolean;
+  /**
+   * When `emitNewlineTokens` is true, the parser may skip leading `newline`
+   * tokens (and following whitespace/comments) immediately before matching these
+   * string keyword rules (rule text compared case-insensitively). Empty/omitted:
+   * no bridging — use explicit `"\\n"` in the grammar instead.
+   *
+   * This is not enabled by default so one-line vs multiline constructs that rely
+   * on a newline *not* being skipped (e.g. `If c Then` + newline + block) stay
+   * unambiguous; each host language opts into the keywords it needs (`until`
+   * targets, block closers, etc.).
+   */
+  newlineBridgeBeforeKeywordRules?: readonly string[] | null;
 };
 
-const defaultLexOptions: Required<Omit<LexOptions, "additionalOperators">> & {
+/** Defaults merged with `options` inside `lex()`. Exported for `Parser.parse` / `parseFromStream` option merge. */
+export const defaultLexOptions: Required<Omit<LexOptions, "additionalOperators">> & {
   additionalOperators: string[];
 } = {
   slashSlashComments: true,
@@ -27,6 +45,8 @@ const defaultLexOptions: Required<Omit<LexOptions, "additionalOperators">> & {
   allowDollarInIdentifier: false,
   multiCharComparisons: false,
   additionalOperators: [],
+  emitNewlineTokens: false,
+  newlineBridgeBeforeKeywordRules: null,
 };
 
 export function lex(
@@ -56,6 +76,58 @@ export function lex(
     const char = input[current];
 
     if (/\s/.test(char)) {
+      if (opts.emitNewlineTokens) {
+        const lineBreak = () => {
+          const startColumn = column;
+          if (char === "\r" && input[current + 1] === "\n") {
+            tokens.push({
+              type: "newline",
+              value: "\n",
+              line,
+              column: startColumn,
+              index: current + 2,
+            });
+            current += 2;
+          } else {
+            tokens.push({
+              type: "newline",
+              value: "\n",
+              line,
+              column: startColumn,
+              index: current + 1,
+            });
+            current += 1;
+          }
+          line++;
+          column = 1;
+        };
+
+        if (char === "\r" || char === "\n") {
+          lineBreak();
+          continue;
+        }
+        let value = "";
+        const startColumn = column;
+        while (current < input.length) {
+          const c0 = input[current];
+          if (c0 === "\n" || c0 === "\r") break;
+          if (!/\s/.test(c0)) break;
+          value += c0;
+          current++;
+          column++;
+        }
+        if (value) {
+          tokens.push({
+            type: "whitespace",
+            value,
+            line,
+            column: startColumn,
+            index: current,
+          });
+        }
+        continue;
+      }
+
       let value = "";
       const startColumn = column;
       while (current < input.length && /\s/.test(input[current])) {
@@ -108,11 +180,17 @@ export function lex(
 
     const lastSig = [...tokens]
       .reverse()
-      .find((t) => t.type !== "whitespace" && t.type !== "comment");
+      .find(
+        (t) =>
+          t.type !== "whitespace" &&
+          t.type !== "comment" &&
+          t.type !== "newline",
+      );
     const allowSignedNumber =
       !lastSig ||
       lastSig.type === "operator" ||
       lastSig.type === "keyword" ||
+      lastSig.type === "newline" ||
       (lastSig.type === "bracket" &&
         [",", "(", "[", "{"].includes(String(lastSig.value)));
 
