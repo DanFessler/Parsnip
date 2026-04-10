@@ -6,10 +6,22 @@
   "private": true,
   "version": "0.0.0",
   "type": "module",
+  "main": "./dist/parsnip.umd.js",
+  "module": "./dist/parsnip.es.js",
+  "types": "./dist/parsnip.es.d.ts",
+  "exports": {
+    ".": {
+      "types": "./dist/parsnip.es.d.ts",
+      "import": "./dist/parsnip.es.js",
+      "require": "./dist/parsnip.umd.js"
+    }
+  },
+  "files": ["dist"],
   "scripts": {
     "dev": "vite",
     "dev:debug": "vite --debug",
     "build": "tsc -b && vite build",
+    "prepare": "npm run build",
     "lint": "eslint .",
     "preview": "vite preview",
     "test": "vitest"

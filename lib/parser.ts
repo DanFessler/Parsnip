@@ -43,7 +43,7 @@ class Parser {
     const keywords = this.findKeywords(this.grammar);
     const tokens = lex(program, keywords);
     this.tokens = tokens;
-    console.log("tokens", this.tokens);
+    if (this.debug) console.log("tokens", this.tokens);
 
     try {
       return this.parseRule(this.grammar[rule as keyof Grammar], rule);
@@ -303,7 +303,7 @@ class Parser {
     // if we've reached the end of the token stream and there's no rule to parse, throw an error
     if (!this.tokens.peek()) throw new ParseError("Unexpected end of input");
 
-    console.log("rule", rule, this.tokens.peek());
+    if (this.debug) console.log("rule", rule, this.tokens.peek());
 
     // ignore comments and whitespace
     let peek = this.tokens.peek();  
@@ -344,4 +344,6 @@ class Parser {
   }
 }
 
+export { lex, createTokenStream, type LexOptions } from "./lexer";
+export type { Token, TokenStream, Grammar, Rule } from "./types";
 export { Parser, ParseError };

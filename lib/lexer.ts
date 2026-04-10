@@ -1,18 +1,60 @@
 import { Token, TokenStream } from "./types";
 
-const operators = ["+", "-", "*", "/", ">", "<", "=", "%"];
-const brackets = ["(", ")", "[", "]", "{", "}"];
+const defaultOperators = ["+", "-", "*", "/", ">", "<", "=", "%"];
+const defaultBrackets = ["(", ")", "[", "]", "{", "}", ",", ":"];
 
-export function lex(input: string, keywords: string[] = []): TokenStream {
+/** Options for `lex()`. Defaults match original Parsnip behavior. */
+export type LexOptions = {
+  slashSlashComments?: boolean;
+  /** `'` starts a line comment to end of line (typical BASIC). */
+  apostropheLineComments?: boolean;
+  /** `Rem` at token start, rest of line is comment (case-insensitive). */
+  remLineComments?: boolean;
+  /** Allow `$` at end of identifiers (e.g. `a$`, `Inkey$`). */
+  allowDollarInIdentifier?: boolean;
+  /** Recognize `<>`, `<=`, `>=` as single operator tokens. */
+  multiCharComparisons?: boolean;
+  /** Extra single-character operator tokens (e.g. `;` for BASIC `Print a; b`). */
+  additionalOperators?: string[];
+};
+
+const defaultLexOptions: Required<Omit<LexOptions, "additionalOperators">> & {
+  additionalOperators: string[];
+} = {
+  slashSlashComments: true,
+  apostropheLineComments: false,
+  remLineComments: false,
+  allowDollarInIdentifier: false,
+  multiCharComparisons: false,
+  additionalOperators: [],
+};
+
+export function lex(
+  input: string,
+  keywords: string[] = [],
+  options: LexOptions = {}
+): TokenStream {
+  const opts = { ...defaultLexOptions, ...options };
+  const operators = [...defaultOperators, ...opts.additionalOperators];
+  const keywordSet = new Set(keywords.map((k) => k.toLowerCase()));
   const tokens: Token[] = [];
   let current = 0;
   let line = 1;
   let column = 1;
 
+  const pushComment = (value: string, startColumn: number) => {
+    tokens.push({
+      type: "comment",
+      value,
+      line,
+      column: startColumn,
+      index: current,
+    });
+  };
+
   while (current < input.length) {
     const char = input[current];
 
-    // Handle whitespace
     if (/\s/.test(char)) {
       let value = "";
       const startColumn = column;
@@ -36,8 +78,7 @@ export function lex(input: string, keywords: string[] = []): TokenStream {
       continue;
     }
 
-    // Handle comments
-    if (char === "/" && input[current + 1] === "/") {
+    if (opts.apostropheLineComments && char === "'") {
       let value = "";
       const startColumn = column;
       while (current < input.length && input[current] !== "\n") {
@@ -45,25 +86,45 @@ export function lex(input: string, keywords: string[] = []): TokenStream {
         current++;
         column++;
       }
-      tokens.push({
-        type: "comment",
-        value,
-        line,
-        column: startColumn,
-        index: current,
-      });
+      pushComment(value, startColumn);
       continue;
     }
 
-    // Handle numbers (including signed numbers)
+    if (
+      opts.slashSlashComments &&
+      char === "/" &&
+      input[current + 1] === "/"
+    ) {
+      let value = "";
+      const startColumn = column;
+      while (current < input.length && input[current] !== "\n") {
+        value += input[current];
+        current++;
+        column++;
+      }
+      pushComment(value, startColumn);
+      continue;
+    }
+
+    const lastSig = [...tokens]
+      .reverse()
+      .find((t) => t.type !== "whitespace" && t.type !== "comment");
+    const allowSignedNumber =
+      !lastSig ||
+      lastSig.type === "operator" ||
+      lastSig.type === "keyword" ||
+      (lastSig.type === "bracket" &&
+        [",", "(", "[", "{"].includes(String(lastSig.value)));
+
     if (
       /[0-9]/.test(char) ||
-      ((char === "+" || char === "-") && /[0-9]/.test(input[current + 1]))
+      ((char === "+" || char === "-") &&
+        /[0-9]/.test(input[current + 1]) &&
+        allowSignedNumber)
     ) {
       let value = "";
       const startColumn = column;
 
-      // Handle sign if present
       if (char === "+" || char === "-") {
         value += char;
         current++;
@@ -85,7 +146,6 @@ export function lex(input: string, keywords: string[] = []): TokenStream {
       continue;
     }
 
-    // Handle strings
     if (char === '"') {
       let value = char;
       const startColumn = column;
@@ -123,46 +183,106 @@ export function lex(input: string, keywords: string[] = []): TokenStream {
       continue;
     }
 
-    // Handle operators
+    if (opts.multiCharComparisons) {
+      if (input[current] === "<" && input[current + 1] === ">") {
+        tokens.push({
+          type: "operator",
+          value: "<>",
+          line,
+          column,
+          index: current + 2,
+        });
+        current += 2;
+        column += 2;
+        continue;
+      }
+      if (input[current] === "<" && input[current + 1] === "=") {
+        tokens.push({
+          type: "operator",
+          value: "<=",
+          line,
+          column,
+          index: current + 2,
+        });
+        current += 2;
+        column += 2;
+        continue;
+      }
+      if (input[current] === ">" && input[current + 1] === "=") {
+        tokens.push({
+          type: "operator",
+          value: ">=",
+          line,
+          column,
+          index: current + 2,
+        });
+        current += 2;
+        column += 2;
+        continue;
+      }
+    }
+
     if (operators.includes(char)) {
       tokens.push({
         type: "operator",
         value: char,
         line,
         column,
-        index: current,
+        index: current + 1,
       });
       current++;
       column++;
       continue;
     }
 
-    // Handle brackets
-    if (brackets.includes(char)) {
+    if (defaultBrackets.includes(char)) {
       tokens.push({
         type: "bracket",
         value: char,
         line,
         column,
-        index: current,
+        index: current + 1,
       });
       current++;
       column++;
       continue;
     }
 
-    // Handle keywords and identifiers
     if (/[a-zA-Z]/.test(char)) {
       let value = "";
       const startColumn = column;
-      while (current < input.length && /[a-zA-Z0-9]/.test(input[current])) {
+      while (
+        current < input.length &&
+        /[a-zA-Z0-9]/.test(input[current])
+      ) {
         value += input[current];
         current++;
         column++;
       }
-      const type = keywords.includes(value) ? "keyword" : "identifier";
+      if (
+        opts.allowDollarInIdentifier &&
+        current < input.length &&
+        input[current] === "$"
+      ) {
+        value += "$";
+        current++;
+        column++;
+      }
+
+      if (opts.remLineComments && value.toLowerCase() === "rem") {
+        let remVal = value;
+        while (current < input.length && input[current] !== "\n") {
+          remVal += input[current];
+          current++;
+          column++;
+        }
+        pushComment(remVal, startColumn);
+        continue;
+      }
+
+      const isKw = keywordSet.has(value.toLowerCase());
       tokens.push({
-        type,
+        type: isKw ? "keyword" : "identifier",
         value,
         line,
         column: startColumn,
@@ -171,21 +291,20 @@ export function lex(input: string, keywords: string[] = []): TokenStream {
       continue;
     }
 
-    // Skip unknown characters
     current++;
     column++;
   }
 
-  return createTokenStream(
-    tokens, //tokens.filter((token) => token.type !== "whitespace"),
-    input
-  );
+  return createTokenStream(tokens, input);
 }
 
 class TokenStreamImpl implements TokenStream {
   private position_: number = 0;
 
-  constructor(private tokens: Token[], private text: string) {}
+  constructor(
+    private tokens: Token[],
+    private text: string
+  ) {}
 
   peek(): Token | undefined {
     return this.tokens[this.position_];
@@ -219,15 +338,10 @@ class TokenStreamImpl implements TokenStream {
     return this.text
       .split("\n")
       .map((line, i) => {
-        // take the end line number and count its digits
         const endDigits = end ? end.toString().length : 0;
-
-        // prefix line number with spaces to match the end line number
         let repeatCount = endDigits - (i + 1).toString().length;
-        if (repeatCount < 0) repeatCount = 0; // TODO: I need to think through why this is needed
+        if (repeatCount < 0) repeatCount = 0;
         const prefix = " ".repeat(repeatCount);
-
-        // format the line
         return `${prefix}${i + 1} | ${line}`;
       })
       .slice(start - 1, end)
